@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eNPS сервіс | HR. Час діяТИ!</title>
+<script>
+  // Перенаправляємо на кабінет, зберігаючи hash і query (для magic link, confirm email тощо)
+  (function() {
+    var dest = "screen-4-cabinet.html";
+    var qs = window.location.search || "";
+    var hash = window.location.hash || "";
+    window.location.replace(dest + qs + hash);
+  })();
+</script>
+<meta http-equiv="refresh" content="0; url=screen-4-cabinet.html">
+</head>
+<body>
+<p>Перенаправлення... Якщо не відбулось автоматично, <a href="screen-4-cabinet.html">натисніть тут</a>.</p>
+</body>
+</html>
