@@ -21,6 +21,132 @@
   window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
+
+  // ====== API: обгортка над Supabase ======
+  // Конвертації між JS (camelCase) і БД (snake_case)
+  function dbToSurvey(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      title: row.title || "",
+      company: row.company || "",
+      status: row.status || "draft",
+      surveyDate: row.survey_date || null,
+      deadline: row.deadline || null,
+      closedAt: row.closed_at || null,
+      employeeCount: row.employee_count || null,
+      segmentOptions: row.segment_options || [],
+      segmentRequired: !!row.segment_required,
+      askSegment: row.ask_segment !== false,
+      includeReason: row.include_reason !== false,
+      reasonRequired: row.reason_required !== false,
+      reasonQuestion: row.reason_question || "",
+      introText: row.intro_text || "",
+      thankYouText: row.thank_you_text || "",
+      extraQuestions: row.extra_questions || [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      responses: [] // заповнюємо окремо через apiListResponses
+    };
+  }
+  function surveyToDb(s) {
+    const out = {};
+    if ("title" in s) out.title = s.title;
+    if ("company" in s) out.company = s.company;
+    if ("status" in s) out.status = s.status;
+    if ("surveyDate" in s) out.survey_date = s.surveyDate || null;
+    if ("deadline" in s) out.deadline = s.deadline || null;
+    if ("closedAt" in s) out.closed_at = s.closedAt || null;
+    if ("employeeCount" in s) out.employee_count = s.employeeCount || null;
+    if ("segmentOptions" in s) out.segment_options = s.segmentOptions || [];
+    if ("segmentRequired" in s) out.segment_required = !!s.segmentRequired;
+    if ("askSegment" in s) out.ask_segment = !!s.askSegment;
+    if ("includeReason" in s) out.include_reason = !!s.includeReason;
+    if ("reasonRequired" in s) out.reason_required = !!s.reasonRequired;
+    if ("reasonQuestion" in s) out.reason_question = s.reasonQuestion || "";
+    if ("introText" in s) out.intro_text = s.introText || "";
+    if ("thankYouText" in s) out.thank_you_text = s.thankYouText || "";
+    if ("extraQuestions" in s) out.extra_questions = s.extraQuestions || [];
+    return out;
+  }
+  function dbToResponse(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      surveyId: row.survey_id,
+      score: row.score,
+      segment: row.segment || "",
+      comment: row.comment || "",
+      extras: row.extras || [],
+      createdAt: row.created_at
+    };
+  }
+
+  window.api = {
+    // SURVEYS
+    async listSurveys() {
+      const { data, error } = await sb.from("surveys").select("*").order("created_at", { ascending: false });
+      if (error) { console.error("listSurveys:", error); return []; }
+      return (data || []).map(dbToSurvey);
+    },
+    async getSurvey(id) {
+      const { data, error } = await sb.from("surveys").select("*").eq("id", id).maybeSingle();
+      if (error) { console.error("getSurvey:", error); return null; }
+      return data ? dbToSurvey(data) : null;
+    },
+    async createSurvey(s) {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const payload = { ...surveyToDb(s), user_id: user.id };
+      const { data, error } = await sb.from("surveys").insert(payload).select().single();
+      if (error) throw error;
+      return dbToSurvey(data);
+    },
+    async updateSurvey(id, s) {
+      const { data, error } = await sb.from("surveys").update(surveyToDb(s)).eq("id", id).select().single();
+      if (error) throw error;
+      return dbToSurvey(data);
+    },
+    async deleteSurvey(id) {
+      const { error } = await sb.from("surveys").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+    // RESPONSES
+    async listResponses(surveyId) {
+      const { data, error } = await sb.from("responses").select("*").eq("survey_id", surveyId).order("created_at", { ascending: true });
+      if (error) { console.error("listResponses:", error); return []; }
+      return (data || []).map(dbToResponse);
+    },
+    async submitResponse(surveyId, r) {
+      const payload = {
+        survey_id: surveyId,
+        score: r.score,
+        segment: r.segment || null,
+        comment: r.comment || null,
+        extras: r.extras || []
+      };
+      const { data, error } = await sb.from("responses").insert(payload).select().single();
+      if (error) throw error;
+      return dbToResponse(data);
+    },
+    // PROFILE
+    async getCurrentProfile() {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await sb.from("profiles").select("*").eq("id", user.id).single();
+      if (error) { console.error("getCurrentProfile:", error); return null; }
+      return data;
+    },
+    async updateProfile(patch) {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { data, error } = await sb.from("profiles").update(patch).eq("id", user.id).select().single();
+      if (error) throw error;
+      return data;
+    }
+  };
 </script>
 <style>
   :root {
@@ -2824,6 +2950,17 @@ async function loadUserProfile() {
     };
     state.loggedIn = true;
     state.credits = profile.credits || 0;
+    // Завантажуємо опитування з Supabase (заміняє локальний state.surveys)
+    try {
+      const surveys = await api.listSurveys();
+      // Для кожного survey підвантажуємо responses
+      for (const s of surveys) {
+        s.responses = await api.listResponses(s.id);
+      }
+      state.surveys = surveys;
+    } catch (e) {
+      console.warn("Failed to load surveys from Supabase:", e);
+    }
     saveState();
     if (typeof updateUserChip === "function") updateUserChip();
     if (typeof updateCreditsBadge === "function") updateCreditsBadge();
@@ -3545,7 +3682,7 @@ function saveNewSurvey() {
 }
 
 // Генерація посилання – саме тут списується кредит
-function activateSurvey(id) {
+async function activateSurvey(id) {
   const s = state.surveys.find(x => x.id === id);
   if (!s) return;
   if (s.status === "active") return;
@@ -3557,6 +3694,18 @@ function activateSurvey(id) {
   }
   const warning = "УВАГА: після генерації посилання анкету НЕ МОЖНА буде редагувати.\n\nПеред натисканням перевірте:\n• Назву компанії і заголовок\n• Головне питання eNPS\n• Додаткові питання і їх обовʼязковість\n• Текст подяки\n\nНатиснути «ОК» щоб активувати опитування? Це спише 1 оплачене опитування з балансу.";
   if (!confirm(warning)) return;
+  const isDemo = !state.user?.id;
+  try {
+    if (!isDemo) {
+      await api.updateSurvey(id, { status: "active" });
+      // Списуємо кредит у БД
+      await api.updateProfile({ credits: (state.credits || 0) - 1 });
+    }
+  } catch (e) {
+    console.error("activateSurvey:", e);
+    alert("Не вдалося активувати: " + (e.message || e));
+    return;
+  }
   s.status = "active";
   s.activatedAt = new Date().toISOString().slice(0, 10);
   state.credits -= 1;
@@ -3565,32 +3714,51 @@ function activateSurvey(id) {
   renderSurveyDetail(s);
 }
 
-function saveDraftOnly() {
+async function saveDraftOnly() {
   const data = collectFormData();
   if (!data.title) { alert("Введіть назву опитування"); return; }
-  const now = new Date().toISOString().slice(0, 10);
-  if (editingDraftId) {
-    const s = state.surveys.find(x => x.id === editingDraftId);
-    const prevStatus = s.status;
-    Object.assign(s, data);
-    // Зберігаємо попередній статус: активне залишається активним, чернетка – чернеткою
-    s.status = prevStatus && prevStatus !== "draft" ? prevStatus : "draft";
-    s.updatedAt = new Date().toISOString();
+  // Demo-mode: state.user без id (mock-юзер) - залишаємо локальне збереження
+  const isDemo = !state.user?.id;
+  try {
+    if (editingDraftId) {
+      const s = state.surveys.find(x => x.id === editingDraftId);
+      const prevStatus = s ? s.status : null;
+      const newStatus = prevStatus && prevStatus !== "draft" ? prevStatus : "draft";
+      if (isDemo) {
+        Object.assign(s, data);
+        s.status = newStatus;
+        s.updatedAt = new Date().toISOString();
+      } else {
+        const updated = await api.updateSurvey(editingDraftId, { ...data, status: newStatus });
+        updated.responses = s?.responses || [];
+        Object.assign(s, updated);
+      }
+      saveState();
+      showView("cabinetView");
+      return;
+    }
+    if (isDemo) {
+      const id = slugify(data.title) + "-" + Date.now().toString(36);
+      const now = new Date().toISOString().slice(0, 10);
+      state.surveys.push({ id, ...data, status: "draft", createdAt: now, closedAt: null, responses: [] });
+    } else {
+      const created = await api.createSurvey({ ...data, status: "draft" });
+      created.responses = [];
+      state.surveys.unshift(created);
+    }
     saveState();
     showView("cabinetView");
-    return;
+  } catch (e) {
+    console.error("saveDraftOnly:", e);
+    alert("Не вдалося зберегти: " + (e.message || e));
   }
-  const id = slugify(data.title) + "-" + Date.now().toString(36);
-  state.surveys.push({ id, ...data, status: "draft", createdAt: now, closedAt: null, responses: [] });
-  saveState();
-  showView("cabinetView");
 }
 
 function slugify(s) {
   return (s || "survey").toLowerCase().replace(/[^a-z0-9а-яіїєґ]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
-function deleteSurvey(id) {
+async function deleteSurvey(id) {
   const s = state.surveys.find(x => x.id === id);
   if (!s) return;
   const respCount = s.responses?.length || 0;
@@ -3601,8 +3769,16 @@ function deleteSurvey(id) {
     msg = `Видалити активне опитування "${s.title}"? Посилання на форму перестане працювати.`;
   }
   if (!confirm(msg)) return;
-  // Якщо опитування відкрите зараз – повертаємо у кабінет
   if (currentSurveyId === id) currentSurveyId = null;
+  // Видалення з Supabase (якщо не demo-mode)
+  const isDemo = !state.user?.id;
+  try {
+    if (!isDemo) await api.deleteSurvey(id);
+  } catch (e) {
+    console.error("deleteSurvey:", e);
+    alert("Не вдалося видалити: " + (e.message || e));
+    return;
+  }
   state.surveys = state.surveys.filter(x => x.id !== id);
   saveState();
   showView("cabinetView");
@@ -3716,6 +3892,11 @@ function decodeSurveyData(str) {
 
 function getEmployeeLink(s) {
   const base = window.location.href.split("#")[0];
+  // Якщо id це UUID (з Supabase) - простий короткий лінк, дані тягнуться з БД
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id)) {
+    return `${base}#s=${s.id}`;
+  }
+  // Старий fallback для legacy demo-опитувань - запаковуємо у hash
   return `${base}#s=${encodeSurveyData(s)}`;
 }
 
@@ -4854,28 +5035,38 @@ function renderBenchmarkBars(yourEnps) {
   }).join("");
 }
 
-function pauseSurvey(id) {
+async function pauseSurvey(id) {
   const s = state.surveys.find(x => x.id === id);
   if (!s) return;
+  const isDemo = !state.user?.id;
+  try { if (!isDemo) await api.updateSurvey(id, { status: "paused" }); }
+  catch (e) { console.error(e); alert("Не вдалося: " + e.message); return; }
   s.status = "paused";
   saveState();
   renderSurveyDetail(s);
 }
 
-function resumeSurvey(id) {
+async function resumeSurvey(id) {
   const s = state.surveys.find(x => x.id === id);
   if (!s) return;
+  const isDemo = !state.user?.id;
+  try { if (!isDemo) await api.updateSurvey(id, { status: "active" }); }
+  catch (e) { console.error(e); alert("Не вдалося: " + e.message); return; }
   s.status = "active";
   saveState();
   renderSurveyDetail(s);
 }
 
-function closeSurvey(id) {
+async function closeSurvey(id) {
   const s = state.surveys.find(x => x.id === id);
   if (!s) return;
   if (!confirm("Закрити опитування? Нові відповіді прийматися не будуть.")) return;
+  const closedAt = new Date().toISOString().slice(0, 10);
+  const isDemo = !state.user?.id;
+  try { if (!isDemo) await api.updateSurvey(id, { status: "completed", closedAt }); }
+  catch (e) { console.error(e); alert("Не вдалося: " + e.message); return; }
   s.status = "completed";
-  s.closedAt = new Date().toISOString().slice(0, 10);
+  s.closedAt = closedAt;
   saveState();
   renderSurveyDetail(s);
 }
@@ -4895,13 +5086,18 @@ function togglePreviewEdit(id) {
   renderEmployeeView(id);
 }
 
-function renderEmployeeView(id, fallbackData) {
+async function renderEmployeeView(id, fallbackData) {
   let s = state.surveys.find(x => x.id === id);
   // Якщо опитування не у локальному state - беремо з хешу (було запаковано у лінку)
   if (!s && fallbackData && fallbackData.id === id) {
     s = fallbackData;
     state.surveys.push(s);
     saveState();
+  }
+  // Якщо id це UUID - тягнемо з Supabase (працює для будь-якого пристрою/incognito)
+  if (!s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    try { s = await api.getSurvey(id); } catch (e) { console.warn("getSurvey:", e); }
+    if (s) s.responses = s.responses || [];
   }
   const host = document.getElementById("employeeShellContent");
   const isPreview = !window.location.hash.startsWith("#s=");
@@ -5224,7 +5420,7 @@ function buildEmployeeScorePicker() {
   }
 }
 
-function submitEmployeeResponse(id) {
+async function submitEmployeeResponse(id) {
   const err = document.getElementById("scoreError");
   if (selectedScore === null) {
     err.textContent = "Оберіть оцінку від 0 до 10";
@@ -5235,35 +5431,46 @@ function submitEmployeeResponse(id) {
   const reason = document.getElementById("empReason")?.value.trim() || "";
   const extras = Array.from(document.querySelectorAll("[data-extra]")).map(t => t.value.trim());
   const response = {
-    id: "r" + Date.now() + Math.random().toString(36).slice(2, 6),
     score: selectedScore,
     comment: reason,
-    segment, extras,
-    createdAt: new Date().toISOString()
+    segment, extras
   };
 
-  // Завжди читаємо свіжий стан з localStorage, додаємо відповідь і зберігаємо -
-  // так не втратимо відповіді від інших співробітників, які відкрили лінк паралельно
-  try { state = loadState(); } catch(_) {}
-  let s = state.surveys.find(x => x.id === id);
-  if (!s) {
-    // Якщо опитування ще не зареєстроване у цьому localStorage (свіжий браузер),
-    // додаємо з даних із хешу URL
-    const parsed = parseSurveyHash(window.location.hash);
-    if (parsed && parsed.data && parsed.data.id === id) {
-      s = parsed.data;
-      s.responses = s.responses || [];
-      state.surveys.push(s);
-    } else {
-      return; // не маємо опитування – не можемо зберегти
+  // Якщо id виглядає як UUID — це Supabase survey, шлемо у БД (працює з incognito між пристроями).
+  // Якщо id - це slug-вигляду (старий формат), використовуємо локальний fallback.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let thankYou = "Дякуємо за відповідь.";
+  if (isUuid) {
+    try {
+      await api.submitResponse(id, response);
+      const s = await api.getSurvey(id);
+      if (s) thankYou = s.thankYouText || thankYou;
+    } catch (e) {
+      console.error("submitResponse:", e);
+      err.textContent = "Не вдалося надіслати відповідь: " + (e.message || e);
+      err.classList.remove("hidden");
+      return;
     }
+  } else {
+    // Старий localStorage-flow для legacy-опитувань
+    try { state = loadState(); } catch(_) {}
+    let s = state.surveys.find(x => x.id === id);
+    if (!s) {
+      const parsed = parseSurveyHash(window.location.hash);
+      if (parsed && parsed.data && parsed.data.id === id) {
+        s = parsed.data;
+        s.responses = s.responses || [];
+        state.surveys.push(s);
+      } else { return; }
+    }
+    s.responses = s.responses || [];
+    s.responses.push({ id: "r" + Date.now() + Math.random().toString(36).slice(2, 6), ...response, createdAt: new Date().toISOString() });
+    saveState();
+    broadcastResponse(id, { ...response, createdAt: new Date().toISOString() });
+    thankYou = s.thankYouText || thankYou;
   }
-  s.responses = s.responses || [];
-  s.responses.push(response);
-  saveState();
-  broadcastResponse(id, response);
 
-  document.getElementById("thankyouText").textContent = s.thankYouText || "Дякуємо за відповідь.";
+  document.getElementById("thankyouText").textContent = thankYou;
   showView("thankyouView");
 }
 
