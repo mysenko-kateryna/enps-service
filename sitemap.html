@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта екранів | eNPS сервіс</title>
+<style>
+  :root {
+    --ink: #181818;
+    --muted: #5b625f;
+    --paper: #f6f8f4;
+    --panel: #ffffff;
+    --soft: #eef4f1;
+    --line: #d7ded9;
+    --accent: #f0ce21;
+    --accent-strong: #c69b00;
+    --teal: #137b72;
+    --teal-dark: #0c4f4a;
+    --rose: #bf3d56;
+    --green: #247a48;
+    --shadow: 0 18px 46px rgba(20, 30, 28, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+      linear-gradient(130deg, rgba(240, 206, 33, 0.18), transparent 34%),
+      linear-gradient(230deg, rgba(19, 123, 114, 0.14), transparent 38%),
+      var(--paper);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px clamp(16px, 4vw, 50px);
+    color: #fff;
+    background: #181818;
+    border-bottom: 4px solid var(--accent);
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent);
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .brand strong { display: block; font-size: 15px; text-transform: uppercase; }
+  .brand span { display: block; color: #d8d8d0; font-size: 13px; }
+
+  .shell {
+    width: min(1280px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: clamp(24px, 4vw, 46px) 0 56px;
+  }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin: 0 0 14px;
+    color: var(--teal-dark);
+    font-size: 13px; font-weight: 900; text-transform: uppercase;
+  }
+  .eyebrow::before {
+    content: ""; width: 36px; height: 4px; border-radius: 6px; background: var(--accent);
+  }
+
+  h1 {
+    max-width: 900px;
+    margin: 0 0 14px;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.05;
+  }
+  .lead {
+    max-width: 820px;
+    margin: 0 0 32px;
+    color: var(--muted);
+    font-size: 17px;
+  }
+
+  .group {
+    background: var(--panel);
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    padding: clamp(20px, 3vw, 32px);
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+
+  .group-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 2px dashed var(--line);
+  }
+  .group-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    background: var(--teal);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .group-badge.employee { background: var(--accent); color: var(--ink); }
+  .group-title { margin: 0; font-size: 22px; font-weight: 850; }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  .card {
+    flex: 1 1 220px;
+    min-width: 220px;
+    max-width: 280px;
+    background: var(--soft);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card.entry { border-color: var(--accent); background: #fffbe5; }
+  .card.auth { border-color: var(--teal); background: #e4f1ef; }
+  .card.main { border-color: var(--teal-dark); background: #dde9e7; }
+  .card.survey { border-color: var(--accent-strong); background: #fff5cc; }
+  .card.thankyou { border-color: var(--green); background: #dfeee2; }
+
+  .card-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 14px;
+  }
+  .card-title {
+    margin: 4px 0 2px;
+    font-size: 16px;
+    font-weight: 850;
+  }
+  .card-role {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--teal-dark);
+    letter-spacing: 0.4px;
+  }
+  .card-role.employee { color: var(--accent-strong); }
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 6px 0 0;
+  }
+  .card ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  .card ul li { margin-bottom: 3px; }
+
+  .arrow {
+    align-self: center;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--teal);
+    font-size: 22px;
+    font-weight: 900;
+    min-width: 24px;
+  }
+  .arrow-down {
+    align-self: center;
+    color: var(--teal);
+    font-size: 22px;
+    font-weight: 900;
+    margin: -4px 0;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: stretch;
+    margin-bottom: 14px;
+  }
+  .row.center { justify-content: center; }
+
+  .branch-note {
+    flex: 0 0 100%;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 6px 0;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 12px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--line);
+    font-size: 13px;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .swatch {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 2px solid var(--line);
+  }
+  .swatch.entry { border-color: var(--accent); background: #fffbe5; }
+  .swatch.auth { border-color: var(--teal); background: #e4f1ef; }
+  .swatch.main { border-color: var(--teal-dark); background: #dde9e7; }
+  .swatch.survey { border-color: var(--accent-strong); background: #fff5cc; }
+  .swatch.thankyou { border-color: var(--green); background: #dfeee2; }
+
+  .footnote {
+    margin-top: 20px;
+    padding: 18px;
+    background: #fffbe5;
+    border: 2px dashed var(--accent-strong);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .footnote strong { color: var(--teal-dark); }
+
+  @media (max-width: 760px) {
+    .arrow { transform: rotate(90deg); }
+    .card { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">HR</div>
+    <div>
+      <strong>HR. Час діяТИ!</strong>
+      <span>Карта екранів eNPS сервісу</span>
+    </div>
+  </div>
+  <div style="color:#d8d8d0; font-size:13px;">9 екранів · v0.1</div>
+</div>
+
+<main class="shell">
+
+  <p class="eyebrow">Структура сервісу</p>
+  <h1>Які екрани буде мати сервіс і як вони звʼязані між собою</h1>
+  <p class="lead">Нижче карта всіх сторінок, розділених на дві ролі: HR-фахівець, який створює опитування і дивиться результати, і співробітник, який проходить опитування по лінку.</p>
+
+  <section class="group">
+    <div class="group-header">
+      <span class="group-badge">Для HR</span>
+      <h2 class="group-title">Кабінет HR-фахівця</h2>
+    </div>
+
+    <div class="row">
+      <div class="card entry">
+        <span class="card-num">1</span>
+        <span class="card-role">публічний екран</span>
+        <h3 class="card-title">Головна</h3>
+        <p class="card-desc">Лендінг сервісу, коротко про продукт, кнопки «Увійти» і «Зареєструватися».</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="card auth">
+        <span class="card-num">2</span>
+        <span class="card-role">публічний екран</span>
+        <h3 class="card-title">Реєстрація</h3>
+        <p class="card-desc">Email, пароль, назва компанії. Після відправки створюється акаунт.</p>
+      </div>
+      <div class="arrow">↔</div>
+      <div class="card auth">
+        <span class="card-num">3</span>
+        <span class="card-role">публічний екран</span>
+        <h3 class="card-title">Вхід</h3>
+        <p class="card-desc">Email + пароль. Посилання «Забули пароль?».</p>
+      </div>
+    </div>
+
+    <div class="arrow-down" style="text-align:center;">↓</div>
+
+    <div class="row center">
+      <div class="card main">
+        <span class="card-num">4</span>
+        <span class="card-role">вхід обовʼязковий</span>
+        <h3 class="card-title">Кабінет</h3>
+        <p class="card-desc">Головна після входу. Список ваших опитувань (активні, завершені, чернетки) з eNPS кожного.</p>
+        <ul>
+          <li>Кнопка «Нове опитування»</li>
+          <li>Фільтри, пошук</li>
+          <li>Перехід у будь-яке опитування</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card main">
+        <span class="card-num">5</span>
+        <span class="card-role">вхід обовʼязковий</span>
+        <h3 class="card-title">Створення опитування</h3>
+        <p class="card-desc">Майстер. Налаштування:</p>
+        <ul>
+          <li>Назва, дата, кількість співробітників</li>
+          <li>Вступний текст</li>
+          <li>Головне NPS-питання</li>
+          <li>Reason-питання (чому така оцінка)</li>
+          <li>Додаткові відкриті запитання</li>
+          <li>Текст подяки</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="card main">
+        <span class="card-num">6</span>
+        <span class="card-role">вхід обовʼязковий</span>
+        <h3 class="card-title">Опитування: деталі</h3>
+        <p class="card-desc">Одне конкретне опитування. Кілька вкладок:</p>
+        <ul>
+          <li>Лінк для співробітників (копіювати)</li>
+          <li>Дашборд: eNPS, participation, сегменти</li>
+          <li>Список коментарів</li>
+          <li>Експорт CSV</li>
+          <li>Редагувати налаштування</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="card main">
+        <span class="card-num">7</span>
+        <span class="card-role">вхід обовʼязковий</span>
+        <h3 class="card-title">Профіль HR</h3>
+        <p class="card-desc">Дані акаунту: email, компанія, пароль, вихід з акаунту.</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch entry"></span>Точка входу</span>
+      <span class="legend-item"><span class="swatch auth"></span>Реєстрація і вхід</span>
+      <span class="legend-item"><span class="swatch main"></span>Кабінет HR</span>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="group-header">
+      <span class="group-badge employee">Для співробітника</span>
+      <h2 class="group-title">Проходження опитування</h2>
+    </div>
+
+    <div class="row">
+      <div class="card survey">
+        <span class="card-num">8</span>
+        <span class="card-role employee">відкривається по лінку</span>
+        <h3 class="card-title">Сторінка опитування</h3>
+        <p class="card-desc">Співробітник отримує лінк від HR. Анонімно заповнює:</p>
+        <ul>
+          <li>Оцінка 0-10</li>
+          <li>Сегмент (відділ, команда)</li>
+          <li>Стаж</li>
+          <li>Причина оцінки (коментар)</li>
+          <li>Додаткові запитання</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="card thankyou">
+        <span class="card-num">9</span>
+        <span class="card-role employee">після відправки</span>
+        <h3 class="card-title">Дякую</h3>
+        <p class="card-desc">Підтвердження що відповідь прийнята. Текст подяки (задає HR). Фідбек не можна редагувати після відправки.</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="swatch survey"></span>Проходження</span>
+      <span class="legend-item"><span class="swatch thankyou"></span>Завершення</span>
+    </div>
+  </section>
+
+  <div class="footnote">
+    <strong>Як це читати.</strong> Стрілки показують напрямок переходу. З «Кабінету» (4) ви можете зайти у створення нового опитування (5) або відкрити вже існуюче (6). Сторінки 1-3 це публічна частина, 4-7 потребують входу, 8-9 відкривається тільки по унікальному лінку опитування.
+  </div>
+
+</main>
+
+</body>
+</html>

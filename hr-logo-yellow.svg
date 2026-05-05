@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <rect x="0" y="0" width="640" height="640" rx="60" ry="60" fill="#FFEE00"/>
+  <text x="320" y="250" font-family="'Unbounded', 'Lato Black', 'Arial Black', sans-serif" font-weight="900" font-size="200" fill="#000000" text-anchor="middle" dominant-baseline="middle" letter-spacing="-2">HR</text>
+  <text x="320" y="415" font-family="'Unbounded', 'Lato Black', 'Arial Black', sans-serif" font-weight="900" font-size="95" fill="#000000" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">ЧАС ДІЯТИ!</text>
+</svg>

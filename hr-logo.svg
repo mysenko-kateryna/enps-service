@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e2b1d"/>
+      <stop offset="55%" stop-color="#112f21"/>
+      <stop offset="100%" stop-color="#081a0f"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="640" height="640" rx="78" ry="78" fill="url(#bg)"/>
+  <circle cx="568" cy="72" r="26" fill="#e3b64b"/>
+  <text x="320" y="268" font-family="'Unbounded', 'Poppins', 'Lato', sans-serif" font-weight="900" font-size="260" fill="#e3b64b" text-anchor="middle" dominant-baseline="middle" letter-spacing="-6">HR</text>
+  <text x="320" y="450" font-family="'Unbounded', 'Poppins', 'Lato', sans-serif" font-weight="900" font-size="80" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">ЧАС ДІЯТИ!</text>
+</svg>

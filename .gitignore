@@ -1,0 +1,9 @@
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.tmp
+_dashfix*.py
+node_modules/
+.env
+.env.local

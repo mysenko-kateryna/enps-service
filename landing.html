@@ -1,0 +1,2768 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eNPS сервіс | HR. Час діяТИ!</title>
+<meta name="description" content="Автоматизуйте eNPS-опитування вашої команди. Від створення анкети до готового звіту за один день.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #e3b64b;
+    --yellow-soft: #f4d98b;
+    --green: #2f6f5e;
+    --green-dark: #214e42;
+    --green-soft: #dde9e5;
+    --coral: #e85d3a;
+    --coral-soft: #fce0d8;
+    --ink: #1a1a1a;
+    --ink-soft: #2d322f;
+    --paper: #f9f7f2;
+    --panel: #ffffff;
+    --muted: #6b6b6b;
+    --line: #e6e2d8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    color: var(--ink);
+    background: var(--paper);
+    font-family: "Manrope", system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    line-height: 1.55;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: "Unbounded", "Manrope", sans-serif;
+    letter-spacing: -0.02em;
+    margin: 0;
+    font-weight: 800;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  button, .btn {
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.08s, background 0.18s, box-shadow 0.18s, color 0.18s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-yellow {
+    background: var(--yellow);
+    color: var(--ink);
+    box-shadow: 0 6px 20px rgba(227,182,75,0.45);
+  }
+  .btn-yellow:hover { background: #efc75a; }
+  .btn-dark {
+    background: var(--ink);
+    color: var(--yellow);
+    box-shadow: 0 6px 20px rgba(26,26,26,0.25);
+  }
+  .btn-dark:hover { background: var(--green-dark); }
+  .btn-outline-light {
+    background: transparent;
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.3);
+  }
+  .btn-outline-light:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn-outline {
+    background: transparent;
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+  }
+  .btn-outline:hover { border-color: var(--green); color: var(--green); }
+
+  /* Header */
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(249,247,242,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    padding: 0 clamp(16px, 4vw, 44px);
+  }
+  .site-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 14px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 40px;
+    align-items: center;
+  }
+  .site-header-inner .nav-links {
+    justify-self: start;
+    justify-content: flex-start;
+    width: max-content;
+    margin-left: 12px;
+  }
+  @media (max-width: 960px) {
+    .site-header-inner { grid-template-columns: 1fr auto; gap: 16px; }
+    .site-header-inner .nav-links { justify-self: end; justify-content: flex-end; }
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo {
+    width: 48px; height: 48px;
+    background: transparent;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .brand-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .brand-txt strong { display: block; font-family: "Unbounded", sans-serif; font-size: 14px; font-weight: 700; }
+  .brand-txt span { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .nav-links { display: flex; align-items: center; gap: 18px; justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; margin-left: auto; }
+  .nav-links a:not(.nav-cta) {
+    position: relative;
+    padding: 8px 0;
+    font-family: "Manrope", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: transparent;
+    border-radius: 0;
+    transition: color 0.15s;
+  }
+  .nav-links a:not(.nav-cta):hover { color: var(--green); background: transparent; }
+  .nav-links a:not(.nav-cta)::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 2px;
+    height: 2px;
+    background: var(--yellow);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+  }
+  .nav-links a:not(.nav-cta):hover::after { transform: scaleX(1); }
+  .nav-cta {
+    background: var(--coral) !important;
+    color: #fff !important;
+    padding: 10px 18px !important;
+    animation: nav-cta-pulse 1.8s ease-in-out infinite;
+    box-shadow: 0 4px 14px rgba(232, 93, 58, 0.4);
+  }
+  .nav-cta:hover {
+    background: #d94d2b !important;
+    color: #fff !important;
+    animation-play-state: paused;
+  }
+  @keyframes nav-cta-pulse {
+    0%, 100% {
+      box-shadow: 0 4px 14px rgba(232, 93, 58, 0.4), 0 0 0 0 rgba(232, 93, 58, 0.55);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 4px 14px rgba(232, 93, 58, 0.4), 0 0 0 10px rgba(232, 93, 58, 0);
+      transform: scale(1.04);
+    }
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(170deg, #0e2b1d 0%, #112f21 55%, #081a0f 100%);
+    color: #fff;
+    padding: clamp(24px, 3vw, 40px) clamp(16px, 4vw, 44px) clamp(48px, 7vw, 80px);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(227,182,75,0.18) 0%, transparent 60%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    bottom: -150px; left: -100px;
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(232,93,58,0.12) 0%, transparent 60%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    gap: 40px; align-items: stretch;
+    position: relative; z-index: 1;
+  }
+  .hero-text {
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-text .hero-actions { margin-top: auto; }
+  @media (max-width: 960px) { .hero-inner { grid-template-columns: 1fr; gap: 40px; } }
+
+  .eyebrow-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: rgba(227,182,75,0.14);
+    border: 1px solid rgba(227,182,75,0.4);
+    border-radius: 999px;
+    font-size: 12px; font-weight: 700; color: var(--yellow);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .eyebrow-pill .dot {
+    width: 8px; height: 8px; background: var(--yellow); border-radius: 50%;
+    box-shadow: 0 0 12px var(--yellow);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  .hero h1 {
+    font-size: clamp(34px, 5.6vw, 64px);
+    line-height: 1.04; color: #fff;
+    font-weight: 800;
+    margin-bottom: 22px;
+  }
+  .hero-bigcaps {
+    font-size: clamp(28px, 3.6vw, 44px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -0.025em;
+    text-transform: none;
+    font-weight: 800 !important;
+    margin-bottom: 20px !important;
+  }
+  .hero-accent { color: var(--yellow); }
+  .hero-copy {
+    font-size: clamp(15px, 1.5vw, 17px);
+    color: rgba(255,255,255,0.76);
+    max-width: 560px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  .hero-copy .kw {
+    color: #fff;
+    font-weight: 700;
+    padding: 0;
+  }
+  .hero-copy .your-part {
+    font-weight: 800;
+    color: var(--yellow);
+    margin-left: 2px;
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+  .hero-note {
+    display: flex; align-items: center; gap: 18px;
+    flex-wrap: wrap;
+    font-size: 13px; color: rgba(255,255,255,0.62);
+    font-weight: 600;
+  }
+  .hero-note-item { display: inline-flex; align-items: center; gap: 8px; }
+  .hero-note-item::before {
+    content: "✓"; color: var(--yellow);
+    font-weight: 800; font-size: 14px;
+  }
+
+  /* Hero visual: mini dashboard card */
+  .hero-dash {
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+    transform: rotate(-1.5deg);
+    position: relative;
+  }
+  .hero-dash::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    background: linear-gradient(135deg, var(--yellow) 0%, var(--coral) 100%);
+    border-radius: 28px;
+    z-index: -1;
+    opacity: 0.3;
+  }
+  .hero-dash-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 14px; border-bottom: 1px dashed var(--line);
+    margin-bottom: 18px;
+  }
+  .hero-dash-head strong {
+    font-family: "Unbounded", sans-serif; font-size: 13px; font-weight: 700;
+  }
+  .live-dot {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; color: var(--green);
+  }
+  .live-dot::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .hero-score-big {
+    font-family: "Unbounded", sans-serif;
+    font-size: 92px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-align: center;
+  }
+  .hero-score-lbl {
+    text-align: center; font-size: 11px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+  .hero-bars { display: flex; flex-direction: column; gap: 8px; }
+  .hero-bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; }
+  .hero-bar-row .bar-track { height: 8px; background: #f0ede3; border-radius: 4px; overflow: hidden; }
+  .hero-bar-row .bar-fill { display: block; height: 100%; border-radius: 4px; }
+  .hero-bar-row .bar-fill.d { background: var(--coral); }
+  .hero-bar-row .bar-fill.p { background: var(--yellow); }
+  .hero-bar-row .bar-fill.pr { background: var(--green); }
+  .hero-bar-row .val { text-align: right; font-family: "Unbounded", sans-serif; }
+  .hero-insight {
+    margin-top: 18px; padding: 12px 14px;
+    background: rgba(47,111,94,0.08);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    font-size: 12px; color: var(--ink);
+    font-weight: 600;
+  }
+  .hero-insight strong { color: var(--green); }
+
+  /* ============ AUTOPILOT INFOGRAPHIC ============ */
+  .autopilot {
+    position: relative;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 22px;
+    padding: 20px 18px;
+    box-shadow:
+      0 30px 60px rgba(0,0,0,0.32),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .ap-glow-1 {
+    position: absolute;
+    top: -80px; right: -60px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(227,182,75,0.32) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ap-glow-2 {
+    position: absolute;
+    bottom: -80px; left: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(47,111,94,0.4) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ap-header {
+    position: relative; z-index: 1;
+    padding-bottom: 14px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .ap-status { display: flex; align-items: center; gap: 12px; }
+  .ap-status strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 12px; font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.08em;
+  }
+  .ap-status small {
+    display: block;
+    font-size: 10.5px; color: rgba(255,255,255,0.55);
+    font-weight: 600; margin-top: 2px;
+  }
+  .ap-radar {
+    position: relative;
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+  }
+  .ap-radar span {
+    position: absolute; inset: 0;
+    border: 1.5px solid var(--yellow);
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: radar-pulse 2s ease-out infinite;
+  }
+  .ap-radar span:nth-child(2) { animation-delay: 0.6s; }
+  .ap-radar span:nth-child(3) { animation-delay: 1.2s; }
+  @keyframes radar-pulse {
+    0%   { transform: scale(0.3); opacity: 1; }
+    100% { transform: scale(1.2); opacity: 0; }
+  }
+
+  .ap-tasks {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .ap-task {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    transition: background 0.2s;
+  }
+  .ap-task.done {
+    background: rgba(47,111,94,0.12);
+    border-color: rgba(47,111,94,0.35);
+  }
+  .ap-task.running {
+    background: rgba(227,182,75,0.08);
+    border-color: rgba(227,182,75,0.4);
+    animation: running-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes running-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(227,182,75,0.25); }
+    50% { box-shadow: 0 0 0 4px rgba(227,182,75,0.15); }
+  }
+  .ap-tick {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px; font-weight: 900;
+  }
+  .ap-dot-live {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--yellow);
+    position: relative;
+  }
+  .ap-dot-live::before, .ap-dot-live::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--yellow);
+    animation: radar-pulse 1.4s ease-out infinite;
+  }
+  .ap-dot-live::after { animation-delay: 0.7s; }
+
+  .ap-label {
+    font-size: 12.5px; font-weight: 600;
+    color: rgba(255,255,255,0.88);
+  }
+  .ap-meta {
+    font-family: "Unbounded", sans-serif;
+    font-size: 11px; font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: -0.01em;
+  }
+  .ap-meta.ap-accent { color: var(--yellow); font-size: 14px; }
+  .ap-meta.ap-zero { color: #3aa967; font-weight: 800; }
+  .ap-counter {
+    color: var(--yellow);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ap-savings {
+    position: relative; z-index: 1;
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(227,182,75,0.16) 0%, rgba(47,111,94,0.16) 100%);
+    border: 1px solid rgba(227,182,75,0.3);
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .ap-savings > div span {
+    display: block;
+    font-size: 9.5px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  .ap-savings > div strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .ap-savings-left strong {
+    color: rgba(255,255,255,0.55);
+    text-decoration: line-through;
+    text-decoration-color: #ef4444;
+    text-decoration-thickness: 3px;
+    text-decoration-skip-ink: none;
+  }
+  .ap-savings-right strong { color: var(--yellow); }
+  .ap-savings-right {
+    text-align: right;
+    padding-left: 16px;
+    border-left: 1px dashed rgba(255,255,255,0.15);
+  }
+
+  /* Section scaffolding */
+  section.sec {
+    padding: clamp(32px, 4vw, 56px) clamp(16px, 4vw, 44px);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  .sec-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+    font-size: 12px; font-weight: 800; color: var(--green);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .sec-eyebrow::before {
+    content: ""; width: 32px; height: 3px; background: var(--yellow); border-radius: 2px;
+  }
+  h2.sec-title {
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1.15;
+    margin-bottom: 12px;
+    max-width: 880px;
+  }
+  h2.sec-title .brand-accent {
+    color: var(--green);
+    white-space: nowrap;
+  }
+  p.sec-sub {
+    font-size: 15px; color: var(--muted); max-width: 680px;
+    margin: 0 0 30px;
+    line-height: 1.55;
+  }
+
+
+  /* Pain section */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    margin-top: 32px;
+  }
+  .pain-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    position: relative;
+  }
+  .pain-icon {
+    width: 48px; height: 48px;
+    background: var(--coral-soft);
+    color: var(--coral);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+  }
+  .pain-icon svg {
+    width: 24px; height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+  .pain-card h3 {
+    font-family: "Manrope", sans-serif; font-size: 16px; font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .pain-card p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* How it works */
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    position: relative;
+  }
+  @media (max-width: 860px) { .how-grid { grid-template-columns: 1fr; } }
+  .how-step {
+    background: #fff;
+    border-radius: 18px;
+    padding: 26px;
+    box-shadow: 0 4px 20px rgba(26,26,26,0.05);
+    position: relative;
+  }
+  .how-step:nth-child(1) { border-top: 5px solid var(--yellow); }
+  .how-step:nth-child(2) { border-top: 5px solid var(--coral); }
+  .how-step:nth-child(3) { border-top: 5px solid var(--green); }
+  .how-step-num {
+    font-family: "Unbounded", sans-serif;
+    font-size: 46px; font-weight: 800;
+    line-height: 1; letter-spacing: -0.05em;
+    color: var(--ink);
+    opacity: 0.12;
+    position: absolute; top: 20px; right: 24px;
+  }
+  .how-step h3 {
+    font-family: "Manrope", sans-serif;
+    font-size: 19px; font-weight: 800;
+    margin: 8px 0 10px;
+  }
+  .how-step p { color: var(--muted); font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
+  .how-visual {
+    margin-top: 18px; padding: 16px;
+    background: var(--paper);
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px dashed var(--line);
+    min-height: 210px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .how-visual.step-1 {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .how-visual.step-1 .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px; background: #fff;
+    border-radius: 6px; font-weight: 600;
+  }
+  .how-visual.step-1 .row .tag {
+    padding: 2px 8px; background: var(--yellow); border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+  }
+
+  .how-visual.step-2 { text-align: center; font-family: ui-monospace, monospace; }
+  .how-visual.step-2 .link {
+    display: block;
+    padding: 10px; background: var(--ink); color: var(--yellow);
+    border-radius: 8px; font-size: 11px; word-break: break-all;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: transform 0.12s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .how-visual.step-2 .link:hover { transform: scale(1.02); box-shadow: 0 6px 14px rgba(26,26,26,0.25); }
+  .how-visual.step-2 .qr {
+    display: block;
+    width: 72px; height: 72px;
+    margin: 0 auto 6px;
+    border-radius: 8px;
+    background: #fff;
+    padding: 4px;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s;
+  }
+  .how-visual.step-2 .qr img { width: 100%; height: 100%; display: block; }
+  .how-visual.step-2 .qr:hover { transform: scale(1.05); box-shadow: 0 6px 14px rgba(26,26,26,0.25); }
+
+  .how-visual.step-3 {
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    justify-content: flex-start;
+  }
+  .how-visual.step-3 .score-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .how-visual.step-3 .score-header .big {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900; font-size: 28px;
+    color: var(--green);
+    letter-spacing: -0.02em; line-height: 1;
+  }
+  .how-visual.step-3 .score-header .tag {
+    font-size: 10px; font-weight: 800;
+    padding: 3px 8px;
+    background: var(--green-soft);
+    color: var(--green);
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+  }
+  .how-visual.step-3 .mini-bar-row {
+    display: grid; grid-template-columns: 70px 1fr auto;
+    align-items: center; gap: 8px;
+    font-size: 10.5px; font-weight: 700; color: var(--ink);
+  }
+  .how-visual.step-3 .mini-track {
+    height: 7px; background: rgba(0,0,0,0.06);
+    border-radius: 4px; overflow: hidden;
+  }
+  .how-visual.step-3 .mini-fill { display: block; height: 100%; border-radius: 4px; }
+  .how-visual.step-3 .mini-fill.g { background: #1f7a43; }
+  .how-visual.step-3 .mini-fill.y { background: #d4c14a; }
+  .how-visual.step-3 .mini-fill.r { background: var(--coral); }
+  .how-visual.step-3 .mini-val {
+    font-family: "Unbounded", sans-serif; font-size: 10px; min-width: 26px; text-align: right;
+  }
+  .how-visual.step-3 .recs {
+    margin-top: 6px; padding: 8px 10px;
+    background: rgba(47,111,94,0.08);
+    border-left: 2px solid var(--green);
+    border-radius: 6px;
+    font-size: 11px; color: var(--ink);
+    line-height: 1.5;
+  }
+  .how-visual.step-3 .recs strong { color: var(--green); font-weight: 800; }
+  .how-visual.step-3 .b {
+    flex: 1; border-radius: 6px 6px 0 0;
+    background: var(--green);
+    position: relative;
+  }
+  .how-visual.step-3 .b::after {
+    content: attr(data-v);
+    position: absolute; bottom: 6px; left: 0; right: 0;
+    text-align: center;
+    font-family: "Unbounded", sans-serif;
+    font-size: 10px; font-weight: 800; color: #fff;
+  }
+
+  /* Features */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  .feature {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px;
+    transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .feature:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(26,26,26,0.08);
+    border-color: var(--green);
+  }
+  .feature-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  .feature-icon.yellow { background: rgba(227,182,75,0.18); color: var(--yellow); }
+  .feature-icon.green { background: var(--green-soft); color: var(--green); }
+  .feature-icon.coral { background: var(--coral-soft); color: var(--coral); }
+  .feature h3 {
+    font-family: "Manrope", sans-serif;
+    font-size: 16px; font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .feature p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* Comparison / Before after */
+  .compare-block {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    gap: 20px;
+    margin-top: 36px;
+  }
+  @media (max-width: 860px) {
+    .compare-block { grid-template-columns: 1fr; }
+    .compare-arrow { justify-self: center; transform: rotate(90deg); }
+  }
+  .compare-side {
+    padding: 30px;
+    border-radius: 22px;
+  }
+  .compare-side.before {
+    background: var(--panel);
+    border: 1.5px dashed #d9d1c0;
+  }
+  .compare-side.after {
+    background: linear-gradient(140deg, var(--green) 0%, var(--green-dark) 100%);
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .compare-side.after::before {
+    content: ""; position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(227,182,75,0.35) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .compare-title {
+    display: inline-block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 16px; font-weight: 900;
+    padding: 10px 24px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .compare-side.before .compare-title {
+    background: var(--coral);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(232, 93, 58, 0.35);
+    animation: compare-before-pulse 2.4s ease-in-out infinite;
+  }
+  .compare-side.after .compare-title {
+    background: var(--yellow);
+    color: var(--ink);
+    box-shadow: 0 8px 20px rgba(227, 182, 75, 0.55);
+    animation: compare-after-pulse 2.4s ease-in-out infinite;
+    animation-delay: 1.2s;
+  }
+
+  @keyframes compare-before-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 8px 20px rgba(232, 93, 58, 0.35), 0 0 0 0 rgba(232, 93, 58, 0.5);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 8px 20px rgba(232, 93, 58, 0.45), 0 0 0 12px rgba(232, 93, 58, 0);
+    }
+  }
+  @keyframes compare-after-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 8px 20px rgba(227, 182, 75, 0.55), 0 0 0 0 rgba(227, 182, 75, 0.6);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 8px 20px rgba(227, 182, 75, 0.65), 0 0 0 12px rgba(227, 182, 75, 0);
+    }
+  }
+  .compare-side h3 {
+    font-size: 22px; margin-bottom: 14px;
+    color: inherit;
+  }
+  .compare-body {
+    display: block;
+  }
+  .compare-side ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .compare-summary {
+    margin-top: 16px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+  }
+  .compare-side.before .compare-summary {
+    background: rgba(232, 93, 58, 0.08);
+    border: 1px dashed rgba(232, 93, 58, 0.35);
+  }
+  .compare-side.after .compare-summary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+  }
+  .compare-summary-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .compare-summary-icon svg {
+    width: 14px; height: 14px;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none;
+  }
+  .compare-side.before .compare-summary-icon {
+    background: var(--coral);
+    color: #fff;
+  }
+  .compare-side.after .compare-summary-icon {
+    background: var(--yellow);
+    color: var(--ink);
+  }
+  .compare-summary-text { display: flex; flex-direction: column; gap: 1px; }
+  .compare-summary-label {
+    font-size: 9px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .compare-side.before .compare-summary-label { color: var(--coral); }
+  .compare-side.after .compare-summary-label { color: rgba(255,255,255,0.55); }
+  .compare-summary-value {
+    font-family: "Unbounded", sans-serif;
+    font-size: 15px; font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .compare-side.before .compare-summary-value { color: var(--ink); }
+  .compare-side.after .compare-summary-value { color: var(--yellow); }
+  .compare-summary-hint {
+    font-size: 10px;
+    color: inherit;
+    opacity: 0.7;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+  .compare-side li {
+    display: flex; gap: 12px;
+    font-size: 14px; font-weight: 600;
+    padding-left: 0;
+  }
+  .compare-side.before li::before {
+    content: "✗"; color: var(--coral); font-weight: 800;
+  }
+  .compare-side.after li::before {
+    content: "✓"; color: var(--yellow); font-weight: 800;
+  }
+  .compare-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Unbounded", sans-serif;
+    font-size: 32px; font-weight: 800;
+    color: var(--yellow);
+  }
+
+  /* Stats row */
+  .stats-band {
+    background: linear-gradient(170deg, #0e2b1d 0%, #112f21 55%, #081a0f 100%);
+    color: #fff;
+    padding: 16px clamp(16px, 4vw, 44px);
+  }
+  #how { padding-bottom: clamp(28px, 3vw, 44px); }
+  .stats-row {
+    max-width: 1200px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 760px) { .stats-row { grid-template-columns: 1fr 1fr; gap: 18px; } }
+  .big-stat { text-align: center; }
+  .big-stat .num {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: clamp(20px, 2.6vw, 30px);
+    font-weight: 800; color: var(--yellow);
+    line-height: 1; letter-spacing: -0.04em;
+  }
+  .big-stat .lbl {
+    display: block; margin-top: 4px;
+    font-size: 11.5px; color: rgba(255,255,255,0.85);
+    font-weight: 700;
+  }
+  .big-stat .desc {
+    display: block; margin-top: 4px;
+    font-size: 11px; color: rgba(255,255,255,0.55);
+    font-weight: 500;
+    line-height: 1.4;
+    max-width: 220px; margin-left: auto; margin-right: auto;
+  }
+
+  /* Value / infographic section */
+  .value-block {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: clamp(28px, 4vw, 50px);
+    margin-top: 36px;
+  }
+  .value-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 40px; align-items: center;
+  }
+  @media (max-width: 860px) { .value-row { grid-template-columns: 1fr; } }
+
+  .scale-hint {
+    margin-top: 10px !important;
+    padding: 10px 14px;
+    background: rgba(47,111,94,0.08);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    font-size: 13.5px !important;
+    color: var(--ink) !important;
+  }
+  .loyalty-scale-wrap {
+    margin-top: 20px;
+  }
+  .loyalty-scale-wrap.no-margin-top { margin-top: 0; }
+  .methodology-text {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .methodology-text p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .methodology-text p b { color: var(--green); font-weight: 800; }
+  .loyalty-scale-grid {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+  .ls-cell {
+    aspect-ratio: 1/1;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 7px;
+    font-family: "Unbounded", sans-serif;
+    font-size: clamp(11px, 1.1vw, 14px);
+    font-weight: 800;
+    color: #fff;
+  }
+  .ls-cell.det { background: var(--coral); }
+  .ls-cell.pas { background: #d4c14a; }
+  .ls-cell.pro { background: var(--green); }
+  .loyalty-legend {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .ll-item {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ll-dot {
+    width: 16px; height: 16px; border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .ll-dot.det { background: var(--coral); }
+  .ll-dot.pas { background: #d4c14a; }
+  .ll-dot.pro { background: var(--green); }
+  .ll-item strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 15px; font-weight: 800; line-height: 1;
+    color: var(--ink);
+  }
+  .ll-item span {
+    display: block;
+    font-size: 12px; color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .formula-box {
+    background: linear-gradient(135deg, var(--paper) 0%, #fff 100%);
+    border-radius: 18px;
+    padding: 26px;
+    border: 1.5px dashed var(--line);
+  }
+  .formula-row {
+    display: flex; align-items: center; justify-content: space-around;
+    gap: 10px; flex-wrap: wrap;
+  }
+  .formula-part {
+    flex: 1; min-width: 110px;
+    text-align: center;
+    padding: 14px;
+    border-radius: 14px;
+  }
+  .formula-part.p { background: var(--green-soft); }
+  .formula-part.d { background: var(--coral-soft); }
+  .formula-part.r { background: rgba(227,182,75,0.2); }
+  .formula-part span {
+    display: block; font-size: 10px; font-weight: 800;
+    color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .formula-part strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 28px; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .formula-part.p strong { color: var(--green); }
+  .formula-part.d strong { color: var(--coral); }
+  .formula-part.r strong { color: var(--ink); }
+  .formula-op {
+    font-family: "Unbounded", sans-serif;
+    font-size: 22px; color: var(--muted);
+  }
+  .value-copy h3 { font-size: 26px; margin-bottom: 12px; }
+  .value-copy p { color: var(--muted); font-size: 15px; }
+  .value-copy ul {
+    list-style: none; padding: 0; margin: 20px 0 0;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .value-copy li {
+    display: flex; gap: 12px;
+    font-size: 14.5px; font-weight: 600;
+  }
+  .value-copy li::before {
+    content: "→"; color: var(--yellow); font-weight: 800; font-family: "Unbounded", sans-serif;
+  }
+
+  /* Showcase: реальні приклади елементів звіту і дашборду */
+  .showcase-wrap { margin-top: 32px; }
+  .showcase-head { margin-bottom: 22px; }
+  .showcase-head h3 {
+    font-size: clamp(20px, 2.2vw, 26px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .showcase-head p {
+    font-size: 14px; color: var(--muted);
+    max-width: 720px; line-height: 1.55; margin: 0;
+  }
+  .showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 980px) { .showcase-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .showcase-grid { grid-template-columns: 1fr; } }
+  .showcase-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex; flex-direction: column;
+    gap: 14px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .showcase-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15,21,18,0.08);
+  }
+  .showcase-mock {
+    background: #f7f6f1;
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 150px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+  }
+  .showcase-info strong {
+    display: block;
+    font-size: 14px; font-weight: 800;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .showcase-info span {
+    display: block;
+    font-size: 12.5px; color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Mock 1: eNPS score */
+  .mock-score { align-items: center; text-align: center; }
+  .mock-score .ms-num {
+    font-family: "Unbounded", sans-serif;
+    font-size: 48px; font-weight: 900;
+    color: #2f6f5e;
+    line-height: 1; letter-spacing: -0.04em;
+  }
+  .mock-score .ms-num span { font-size: 28px; }
+  .mock-score .ms-status {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 12px;
+    background: #d8eadd;
+    color: #2f6f5e;
+    font-size: 11px; font-weight: 800;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .mock-score .ms-line {
+    width: 60px; height: 1px;
+    background: var(--line);
+    margin: 12px 0;
+  }
+  .mock-score .ms-meta {
+    font-size: 11px; color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Mock 2: Heatmap */
+  .mock-heatmap { gap: 4px; }
+  .mock-heatmap .mh-row {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr);
+    gap: 3px;
+    align-items: center;
+  }
+  .mock-heatmap .mh-row > span:first-child {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--ink);
+    padding-right: 4px;
+  }
+  .mock-heatmap .mh-head > span {
+    font-size: 9.5px; font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    padding: 2px 0;
+  }
+  .mock-heatmap .mh {
+    height: 22px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Unbounded", sans-serif;
+    font-size: 9.5px; font-weight: 800;
+    color: #fff;
+  }
+  .mock-heatmap .mh.c1 { background: #e85d3a; }
+  .mock-heatmap .mh.c2 { background: #ed8b5e; }
+  .mock-heatmap .mh.c3 { background: #e3b64b; }
+  .mock-heatmap .mh.c4 { background: #87a56a; }
+  .mock-heatmap .mh.c5 { background: #4d896d; }
+  .mock-heatmap .mh.c6 { background: #2f6f5e; }
+
+  /* Mock 3: Сегменти */
+  .mock-segments { gap: 8px; }
+  .msg-row {
+    display: grid;
+    grid-template-columns: 70px 36px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .msg-name { font-size: 11px; font-weight: 700; color: var(--ink); }
+  .msg-val {
+    font-family: "Unbounded", sans-serif;
+    font-size: 11px; font-weight: 800;
+    text-align: right;
+  }
+  .msg-val.good { color: #2f6f5e; }
+  .msg-val.ok { color: #4d896d; }
+  .msg-val.warn { color: #d97706; }
+  .msg-val.bad { color: #dc2626; }
+  .msg-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #ece9df;
+  }
+  .msg-bar .b-g { background: #4d896d; }
+  .msg-bar .b-y { background: #e3b64b; }
+  .msg-bar .b-r { background: #e85d3a; }
+
+  /* Mock 4: Динаміка */
+  .mock-dyn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .md-block {
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 10px 14px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    min-width: 90px;
+  }
+  .md-block.current {
+    border-color: #2f6f5e;
+    background: #f0f8f3;
+  }
+  .md-lbl {
+    font-size: 9.5px; color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .md-num {
+    font-family: "Unbounded", sans-serif;
+    font-size: 22px; font-weight: 900;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .md-block.current .md-num { color: #2f6f5e; }
+  .md-arrow {
+    font-size: 22px; font-weight: 800;
+    color: #2f6f5e;
+  }
+  .md-delta {
+    width: 100%;
+    text-align: center;
+    margin-top: 8px;
+    padding: 4px 10px;
+    background: #d8eadd;
+    color: #2f6f5e;
+    font-size: 11px; font-weight: 800;
+    border-radius: 999px;
+    align-self: center;
+  }
+
+  /* Mock 5: Теми з сентиментом */
+  .mock-themes { gap: 8px; }
+  .mt-row {
+    display: grid;
+    grid-template-columns: 78px 1fr 18px 60px;
+    gap: 8px;
+    align-items: center;
+  }
+  .mt-name { font-size: 11px; font-weight: 700; color: var(--ink); }
+  .mt-bar {
+    height: 8px;
+    background: linear-gradient(90deg, #2f6f5e 0%, #4d896d 100%);
+    border-radius: 4px;
+  }
+  .mt-cnt {
+    font-size: 11px; font-weight: 800;
+    color: var(--muted);
+    text-align: right;
+  }
+  .mt-sent {
+    font-size: 9px; font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 3px 6px;
+    border-radius: 999px;
+  }
+  .mt-sent.pos { background: #d8eadd; color: #2f6f5e; }
+  .mt-sent.neg { background: #fde2dc; color: #c63a53; }
+  .mt-sent.mix { background: #fcecc6; color: #92400e; }
+
+  /* Mock 6: Цитата */
+  .mock-quote {
+    background: #fff;
+    border-left: 4px solid #2f6f5e;
+    padding: 14px 16px;
+  }
+  .mq-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .mq-score {
+    width: 26px; height: 26px;
+    background: #2f6f5e;
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Unbounded", sans-serif;
+    font-weight: 800; font-size: 12px;
+  }
+  .mq-cat {
+    font-size: 10px; font-weight: 800;
+    color: #2f6f5e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .mq-seg {
+    font-size: 10px; color: var(--muted);
+    font-weight: 600;
+  }
+  .mq-text {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  /* Previews section */
+  .previews-wrap {
+    margin-top: 36px;
+  }
+  .previews-head {
+    margin-bottom: 20px;
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .previews-head h3 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 20px; font-weight: 800;
+  }
+  .previews-head span { font-size: 13px; color: var(--muted); }
+  .previews-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .previews-grid { grid-template-columns: 1fr; } }
+  .preview-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .preview-tag {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 4px 10px;
+    background: var(--yellow);
+    color: var(--ink);
+    border-radius: 999px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 10.5px; font-weight: 800;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .preview-card h4 {
+    font-family: "Manrope", sans-serif;
+    font-size: 15px; font-weight: 800;
+    margin: 0;
+  }
+  .preview-card > p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+  .preview-mock {
+    margin-top: 8px;
+    padding: 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    font-family: "Manrope", sans-serif;
+  }
+
+  /* Real survey view */
+  .real-survey .rs-eyebrow {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #e5f1ef;
+    color: #0c4f4a;
+    font-size: 9px; font-weight: 800;
+    border-radius: 999px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    align-self: flex-start;
+  }
+  .real-survey .rs-company {
+    font-family: "Unbounded", sans-serif;
+    font-size: 18px; font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .real-survey .rs-intro {
+    font-size: 10.5px; color: var(--muted);
+    line-height: 1.45;
+  }
+  .real-survey .rs-question {
+    font-size: 11.5px; font-weight: 800;
+    color: var(--ink); line-height: 1.35;
+    margin-top: 4px;
+  }
+  .real-survey .rs-scale {
+    display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px;
+  }
+  .real-survey .rs-num {
+    aspect-ratio: 1/1;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 4px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 9.5px; font-weight: 700;
+    color: var(--ink);
+  }
+  .real-survey .rs-num.d { color: #8a2c3f; }
+  .real-survey .rs-num.p { color: #7a7235; }
+  .real-survey .rs-num.pr { color: #1f7a43; }
+  .real-survey .rs-num.sel { background: #0f1512; color: #f0ce21; border-color: #0f1512; }
+  .real-survey .rs-hint {
+    display: flex; justify-content: space-between;
+    font-size: 8.5px; color: var(--muted);
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .real-survey .rs-fields {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 4px;
+  }
+  .real-survey .rs-field label {
+    display: block; font-size: 9px; font-weight: 800;
+    color: var(--ink); margin-bottom: 3px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .real-survey .rs-input {
+    padding: 6px 8px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 10.5px; color: var(--ink);
+  }
+  .real-survey .rs-submit {
+    margin-top: 4px;
+    padding: 8px 10px;
+    background: #f0ce21;
+    color: #0f1512;
+    border-radius: 7px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 10px; font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  /* Real dashboard view */
+  .real-dash .rd-card {
+    padding: 14px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    text-align: center;
+  }
+  .real-dash .rd-score {
+    font-family: "Unbounded", sans-serif;
+    font-size: 36px; font-weight: 800;
+    color: #1f7a43;
+    letter-spacing: -0.03em; line-height: 1;
+  }
+  .real-dash .rd-status {
+    display: inline-block; margin-top: 4px;
+    padding: 3px 10px;
+    background: #e1f1e6; color: #1f7a43;
+    border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+  }
+  .real-dash .rd-summary {
+    margin-top: 6px;
+    font-size: 10px; color: var(--muted); line-height: 1.45;
+  }
+  .real-dash .rd-metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    padding: 10px 8px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .real-dash .rd-metrics > div { text-align: center; }
+  .real-dash .rd-metrics strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 13px; font-weight: 800;
+    color: var(--ink);
+  }
+  .real-dash .rd-metrics span {
+    display: block;
+    font-size: 8.5px; color: var(--muted);
+    font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.03em; margin-top: 1px;
+  }
+  .real-dash .rd-bars {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .real-dash .rd-bar-row {
+    display: grid; grid-template-columns: 90px 1fr auto;
+    align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700;
+  }
+  .real-dash .rd-lbl { color: var(--ink); }
+  .real-dash .rd-track { height: 6px; background: #eef3ed; border-radius: 4px; overflow: hidden; }
+  .real-dash .rd-fill { display: block; height: 100%; border-radius: 4px; }
+  .real-dash .rd-fill.g { background: #3aa967; }
+  .real-dash .rd-fill.y { background: #d4c14a; }
+  .real-dash .rd-fill.r { background: #c63a53; }
+  .real-dash .rd-val {
+    font-family: "Unbounded", sans-serif;
+    font-size: 10px; font-weight: 800;
+  }
+
+  /* Real report view (text export) */
+  .real-report {
+    background: #fdfcf7;
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+  }
+  .real-report pre {
+    margin: 0;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Legacy mock classes – remove unused */
+  .mock-question {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+  .mock-scale {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 3px;
+  }
+  .mock-num {
+    aspect-ratio: 1/1;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Unbounded", sans-serif;
+    font-size: 10px; font-weight: 700;
+    border-radius: 4px;
+    background: #fff;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .mock-num.d { color: var(--coral); }
+  .mock-num.p { color: #7a7235; }
+  .mock-num.pr { color: var(--green); }
+  .mock-num.selected {
+    background: var(--ink); color: var(--yellow); border-color: var(--ink);
+  }
+  .mock-hint-row {
+    display: flex; justify-content: space-between;
+    font-size: 9px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* Dashboard mock */
+  .mock-dash-top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 8px; border-bottom: 1px dashed var(--line);
+  }
+  .mock-dash-score {
+    font-family: "Unbounded", sans-serif;
+    font-size: 28px; font-weight: 900;
+    color: var(--green);
+    letter-spacing: -0.03em; line-height: 1;
+  }
+  .mock-dash-status {
+    padding: 3px 8px;
+    background: var(--green-soft);
+    color: var(--green);
+    border-radius: 999px;
+    font-size: 10px; font-weight: 800;
+  }
+  .mock-dash-bars { display: flex; flex-direction: column; gap: 6px; }
+  .mock-dash-bar-row {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .mock-bar-track {
+    height: 6px;
+    background: rgba(0,0,0,0.06);
+    border-radius: 4px; overflow: hidden;
+  }
+  .mock-bar-fill { display: block; height: 100%; border-radius: 4px; }
+  .mock-bar-fill.g { background: var(--green); }
+  .mock-bar-fill.y { background: #d4c14a; }
+  .mock-bar-fill.r { background: var(--coral); }
+  .mock-bar-val {
+    font-family: "Unbounded", sans-serif;
+    font-size: 10px; font-weight: 800;
+  }
+  .mock-dash-foot {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+  }
+  .mock-dash-foot > div { text-align: center; }
+  .mock-dash-foot strong {
+    display: block;
+    font-family: "Unbounded", sans-serif;
+    font-size: 13px; font-weight: 800; color: var(--ink);
+  }
+  .mock-dash-foot span {
+    display: block;
+    font-size: 9px; color: var(--muted);
+    font-weight: 700; text-transform: uppercase;
+    margin-top: 1px; letter-spacing: 0.04em;
+  }
+
+  /* Report mock */
+  .mock-report-head {
+    display: flex; flex-direction: column; gap: 2px;
+    padding-bottom: 8px; border-bottom: 1px dashed var(--line);
+  }
+  .mock-report-head strong {
+    font-family: "Unbounded", sans-serif;
+    font-size: 13px; font-weight: 800;
+  }
+  .mock-report-head span { font-size: 10px; color: var(--muted); font-weight: 600; }
+  .mock-report-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2px 0;
+    font-size: 11px;
+  }
+  .mock-report-label { color: var(--muted); font-weight: 600; }
+  .mock-report-val {
+    font-family: "Unbounded", sans-serif;
+    font-size: 13px; font-weight: 800; color: var(--ink);
+  }
+  .mock-report-val.g { color: var(--green); }
+  .mock-report-note {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: rgba(47,111,94,0.06);
+    border-radius: 6px;
+    font-size: 10.5px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .mock-report-bullet { color: var(--yellow); font-weight: 900; margin-right: 4px; }
+
+  /* Pricing */
+  .price-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 36px;
+  }
+  @media (max-width: 860px) { .price-grid { grid-template-columns: 1fr; } }
+  .price-card {
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 22px;
+    padding: 30px 28px;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .price-card.highlighted {
+    border-color: var(--green);
+    box-shadow: 0 20px 50px rgba(47,111,94,0.15);
+  }
+  .price-badge {
+    position: absolute; top: -14px; left: 24px;
+    padding: 6px 14px;
+    background: var(--yellow); color: var(--ink);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .price-name {
+    font-family: "Unbounded", sans-serif;
+    font-size: 18px; font-weight: 800; margin-bottom: 6px;
+  }
+  .price-desc { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
+  .price-big {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 22px;
+  }
+  .price-big .amount {
+    font-family: "Unbounded", sans-serif;
+    font-size: 40px; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .price-big .per { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .price-feats {
+    list-style: none; padding: 0; margin: 0 0 22px;
+    display: flex; flex-direction: column; gap: 10px;
+    flex: 1;
+  }
+  .price-feats li {
+    display: flex; gap: 10px; font-size: 13.5px; font-weight: 600;
+  }
+  .price-feats li::before { content: "✓"; color: var(--green); font-weight: 800; }
+
+  /* Single price card */
+  .single-price-wrap {
+    max-width: 620px; margin: 36px auto 0;
+  }
+  .single-price-card {
+    background: #fff;
+    border: 2px solid var(--green);
+    border-radius: 24px;
+    padding: 42px 36px 32px;
+    position: relative;
+    box-shadow: 0 30px 60px rgba(47,111,94,0.18);
+    text-align: left;
+  }
+  .single-price-card .price-badge {
+    position: absolute; top: -14px; left: 50%;
+    transform: translateX(-50%);
+  }
+  .single-price-title {
+    font-family: "Unbounded", sans-serif;
+    font-size: 22px; font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .single-price-desc {
+    color: var(--muted); font-size: 14.5px;
+    margin: 0 0 22px;
+  }
+  .single-price-big {
+    display: flex; align-items: baseline; justify-content: center; gap: 10px;
+    padding: 20px 22px;
+    background: linear-gradient(135deg, rgba(227,182,75,0.16) 0%, rgba(47,111,94,0.08) 100%);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .single-price-big .amount {
+    font-family: "Unbounded", sans-serif;
+    font-size: 52px; font-weight: 800; letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+  .single-price-big .per {
+    font-size: 14px; color: var(--muted); font-weight: 600;
+  }
+  .single-feats li { font-size: 14px; }
+  .single-price-cta {
+    width: 100%; margin-top: 6px;
+    font-size: 16px;
+  }
+  .single-price-note {
+    margin: 18px 0 0;
+    padding: 14px 16px;
+    background: var(--paper);
+    border-radius: 12px;
+    font-size: 13px; color: var(--muted);
+    font-weight: 500; line-height: 1.55;
+    text-align: center;
+  }
+
+  /* Pricing grid: 3 пакети */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin: 32px 0 28px;
+  }
+  @media (max-width: 880px) { .pricing-grid { grid-template-columns: 1fr; max-width: 480px; margin-left: auto; margin-right: auto; } }
+  .pricing-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    display: flex; flex-direction: column;
+    text-align: center;
+    position: relative;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .pricing-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 40px rgba(15,21,18,0.08);
+  }
+  .pricing-card.popular {
+    border: 2px solid var(--green);
+    box-shadow: 0 24px 50px rgba(47,111,94,0.16);
+    transform: translateY(-6px);
+  }
+  .pricing-card.popular:hover { transform: translateY(-9px); }
+  .pc-badge {
+    position: absolute; top: -12px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #fff;
+    font-size: 11px; font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pc-head {
+    margin-bottom: 14px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+  }
+  .pc-qty {
+    font-family: "Unbounded", sans-serif;
+    font-size: 56px; font-weight: 900;
+    color: var(--ink);
+    line-height: 1; letter-spacing: -0.04em;
+  }
+  .pricing-card.popular .pc-qty { color: var(--green); }
+  .pc-qty-lbl {
+    font-size: 12px; font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .pc-price {
+    display: flex; align-items: baseline; justify-content: center; gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .pc-amount {
+    font-family: "Unbounded", sans-serif;
+    font-size: 32px; font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .pc-currency {
+    font-size: 16px; font-weight: 700;
+    color: var(--ink);
+  }
+  .pc-discount {
+    background: rgba(232,93,58,0.12);
+    color: #c63a53;
+    font-size: 11px; font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+  .pc-discount.big {
+    background: var(--green);
+    color: #fff;
+  }
+  .pc-per {
+    display: block;
+    font-size: 12px; color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+  .pc-feats {
+    list-style: none; padding: 0; margin: 0 0 22px;
+    text-align: left;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .pc-feats li {
+    position: relative;
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .pc-feats li::before {
+    content: "✓";
+    position: absolute; left: 0; top: 0;
+    color: var(--green);
+    font-weight: 800;
+  }
+  .pc-cta {
+    margin-top: auto;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Що включено в усі пакети */
+  .pricing-included {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 18px;
+  }
+  .pricing-included h3 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 18px; font-weight: 800;
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .pricing-included-list {
+    list-style: none;
+    padding: 0; margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 24px;
+  }
+  @media (max-width: 760px) { .pricing-included-list { grid-template-columns: 1fr; } }
+  .pricing-included-list li {
+    position: relative;
+    padding-left: 24px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .pricing-included-list li::before {
+    content: "✓";
+    position: absolute; left: 0; top: 0;
+    color: var(--green);
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .pricing-note {
+    margin: 0;
+    padding: 16px 18px;
+    background: var(--paper);
+    border-radius: 12px;
+    font-size: 13px; color: var(--muted);
+    font-weight: 500; line-height: 1.55;
+    text-align: center;
+  }
+
+  /* FAQ */
+  .faq-list {
+    max-width: 860px; margin: 36px auto 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  details.faq {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  details.faq[open] { border-color: var(--green); }
+  details.faq summary {
+    list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: 800; font-size: 15px;
+    font-family: "Manrope", sans-serif;
+  }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after {
+    content: "+"; font-family: "Unbounded", sans-serif;
+    font-size: 22px; color: var(--green); font-weight: 700;
+    transition: transform 0.2s;
+  }
+  details.faq[open] summary::after { content: "−"; }
+  details.faq p { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+
+  /* CTA final */
+  .cta-final {
+    background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    color: #fff;
+    border-radius: 28px;
+    padding: clamp(36px, 5vw, 64px);
+    text-align: center;
+    margin-top: 36px;
+    position: relative; overflow: hidden;
+  }
+  .cta-final::before {
+    content: ""; position: absolute;
+    top: -40px; right: -40px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(227,182,75,0.25) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .cta-final::after {
+    content: ""; position: absolute;
+    bottom: -60px; left: -40px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(232,93,58,0.18) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .cta-final h2 {
+    font-size: clamp(28px, 4.5vw, 44px);
+    color: #fff; margin-bottom: 16px;
+    position: relative; z-index: 1;
+  }
+  .cta-final p {
+    color: rgba(255,255,255,0.8);
+    font-size: 16px; max-width: 520px; margin: 0 auto 24px;
+    position: relative; z-index: 1;
+  }
+  .cta-final .btn { position: relative; z-index: 1; }
+
+  /* Footer */
+  .site-footer {
+    background: var(--ink);
+    color: rgba(255,255,255,0.75);
+    padding: 42px clamp(16px, 4vw, 44px) 28px;
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    align-items: center;
+    gap: 24px;
+  }
+  @media (max-width: 760px) { .footer-inner { grid-template-columns: 1fr; text-align: center; } }
+  .footer-inner .brand-txt strong { color: #fff; }
+  .footer-nav { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .footer-nav a { font-size: 13px; font-weight: 600; }
+  .footer-nav a:hover { color: var(--yellow); }
+  .footer-copy { font-size: 12px; text-align: right; color: rgba(255,255,255,0.5); }
+  @media (max-width: 760px) { .footer-copy { text-align: center; } }
+
+  /* Mobile */
+  @media (max-width: 760px) {
+    .nav-links a:not(.nav-cta) { display: none; }
+    .how-step-num { font-size: 36px; top: 14px; right: 18px; }
+    .heatmap { grid-template-columns: 110px repeat(6, 1fr); font-size: 10px; }
+    .hm-dept { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="#top">
+      <div class="brand-logo"><img src="hr-logo-yellow.svg" alt="HR. Час діяти!"></div>
+      <div class="brand-txt">
+        <strong>HR. Час діяТИ!</strong>
+        <span>eNPS сервіс · © Катерина Мисенко</span>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <a href="#how">Як працює</a>
+      <a href="#features">Можливості</a>
+      <a href="#methodology">Методика</a>
+      <a class="nav-cta" href="screen-4-cabinet.html#pay">Провести діагностику eNPS</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow-pill">
+        <span class="dot"></span>
+        <span>АВТОМАТИЗАЦІЯ eNPS ДЛЯ HR</span>
+      </span>
+      <h1 class="hero-bigcaps">
+        eNPS без Excel.<br>
+        <span class="hero-accent">5 хв замість 5 днів.</span>
+      </h1>
+      <p class="hero-copy">
+        Сервіс сам створює анкету, збирає анонімні відповіді, рахує eNPS і готує звіт з рекомендаціями.<br>
+        <span class="your-part">→ Ваша участь:</span> 5 хвилин замість 5 днів ручної роботи у Google Forms і Excel.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-yellow" href="#pricing">Провести діагностику eNPS →</a>
+        <a class="btn btn-outline-light" href="#how">Як це працює</a>
+      </div>
+      <div class="hero-note">
+        <span class="hero-note-item">Економія до 5 днів на дослідженні</span>
+        <span class="hero-note-item">Готовий звіт для керівництва</span>
+        <span class="hero-note-item">Налаштування за 3 кліки</span>
+      </div>
+    </div>
+
+    <!-- Автопілот infographic -->
+    <div class="autopilot">
+      <div class="ap-glow-1"></div>
+      <div class="ap-glow-2"></div>
+
+      <div class="ap-header">
+        <div class="ap-status">
+          <span class="ap-radar"><span></span><span></span><span></span></span>
+          <div>
+            <strong>АВТОПІЛОТ УВІМКНЕНО</strong>
+            <small>Усі процеси працюють без вас</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="ap-tasks">
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">Анкету створено</span>
+          <span class="ap-meta">1 хв</span>
+        </div>
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">Лінк і QR згенеровано</span>
+          <span class="ap-meta">миттєво</span>
+        </div>
+        <div class="ap-task running">
+          <span class="ap-dot-live"></span>
+          <span class="ap-label">Збір відповідей</span>
+          <span class="ap-meta">у реальному часі</span>
+        </div>
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">eNPS розраховано</span>
+          <span class="ap-meta">0.5 сек</span>
+        </div>
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">Відповіді оброблено</span>
+          <span class="ap-meta">0.2 сек / відп.</span>
+        </div>
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">Звіт для керівництва</span>
+          <span class="ap-meta">3 сек</span>
+        </div>
+        <div class="ap-task done">
+          <span class="ap-tick">✓</span>
+          <span class="ap-label">Дашборд</span>
+          <span class="ap-meta">онлайн 24/7</span>
+        </div>
+      </div>
+
+      <div class="ap-savings">
+        <div class="ap-savings-left">
+          <span>Зекономлено</span>
+          <strong>5 днів</strong>
+        </div>
+        <div class="ap-savings-right">
+          <span>Ваша участь</span>
+          <strong>5 хв</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ЯК ПРАЦЮЄ ============ -->
+<section class="sec" id="how" style="background: #fff; padding-top: clamp(32px, 4vw, 54px);">
+  <div class="wrap">
+    <span class="sec-eyebrow">Як працює</span>
+    <h2 class="sec-title">Від ідеї до висновків за один день</h2>
+    <p class="sec-sub">Три кроки. Жодних складнощів з налаштуванням, жодних формул в Excel, жодних CSV-експортів вручну.</p>
+
+    <div class="how-grid">
+      <div class="how-step">
+        <span class="how-step-num">01</span>
+        <h3>Налаштуйте опитування</h3>
+        <p>Назва, дата, кількість співробітників, кастомізація анкети. Шаблон eNPS уже готовий, можна додати свої відкриті питання.</p>
+        <div class="how-visual step-1">
+          <div class="row">Основне питання <span class="tag">eNPS</span></div>
+          <div class="row">Аргументація відповіді</div>
+          <div class="row">Q1. Що надихає найбільше?</div>
+          <div class="row">Q2. Що варто покращити?</div>
+        </div>
+      </div>
+
+      <div class="how-step">
+        <span class="how-step-num">02</span>
+        <h3>Надішліть лінк команді</h3>
+        <p>Сервіс генерує унікальне посилання і QR-код. Розішліть у Slack, email або роздрукуйте. Відповіді анонімні, відстежити неможливо.</p>
+        <div class="how-visual step-2">
+          <a class="link" href="#pricing">enps.hrchas.app/s/q2-2026-nova-8f3a</a>
+          <a class="qr" href="#pricing" aria-label="Перейти до оплати">
+            <img src="qr-pricing.svg" alt="QR-код" width="80" height="80">
+          </a>
+          <div style="color: var(--muted); font-weight: 600;">Або QR-код</div>
+        </div>
+      </div>
+
+      <div class="how-step">
+        <span class="how-step-num">03</span>
+        <h3>Отримайте результати і дії</h3>
+        <p>Дашборд у реальному часі, сегменти по відділах, рекомендації, що робити з кожним рівнем eNPS. Не просто цифра, а план.</p>
+        <div class="how-visual step-3">
+          <div class="score-header">
+            <span class="big">+42%</span>
+            <span class="tag">Сильний</span>
+          </div>
+          <div class="mini-bar-row">
+            <span>Промоутери</span>
+            <div class="mini-track"><span class="mini-fill g" style="width: 58%"></span></div>
+            <span class="mini-val">58%</span>
+          </div>
+          <div class="mini-bar-row">
+            <span>Нейтрали</span>
+            <div class="mini-track"><span class="mini-fill y" style="width: 26%"></span></div>
+            <span class="mini-val">26%</span>
+          </div>
+          <div class="mini-bar-row">
+            <span>Детрактори</span>
+            <div class="mini-track"><span class="mini-fill r" style="width: 16%"></span></div>
+            <span class="mini-val">16%</span>
+          </div>
+          <div class="recs">
+            <strong>План дій:</strong> попрацюйте з нейтралами, зафіксуйте, що дає результат у промоутерів.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ СТАТИСТИКА ============ -->
+<section class="stats-band">
+  <div class="stats-row">
+    <div class="big-stat">
+      <span class="num">5 хв</span>
+      <span class="lbl">на створення опитування</span>
+    </div>
+    <div class="big-stat">
+      <span class="num">68%</span>
+      <span class="lbl">середній participation rate</span>
+    </div>
+    <div class="big-stat">
+      <span class="num">∞</span>
+      <span class="lbl">співробітників без обмежень</span>
+    </div>
+    <div class="big-stat">
+      <span class="num">100%</span>
+      <span class="lbl">анонімність відповідей</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ МОЖЛИВОСТІ (Проблеми які ми вирішуємо за вас) ============ -->
+<section class="sec" id="features" style="background: var(--paper); padding-top: clamp(32px, 4vw, 54px);">
+  <div class="wrap">
+    <span class="sec-eyebrow">Можливості</span>
+    <h2 class="sec-title">Проблеми, які ми вирішуємо за вас</h2>
+    <p class="sec-sub">HR-фахівцям і керівникам команд, які втомилися рахувати eNPS вручну і хочуть діяти на основі даних. Ось 4 знайомі проблеми, які сервіс знімає з ваших плечей.</p>
+
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.35-4.35"/></svg>
+        </div>
+        <h3>Гуглите формулу eNPS вкотре</h3>
+        <p>Кожне нове опитування починається з пошуку «як порахувати eNPS». Потім Excel, потім помилки.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+        </div>
+        <h3>Збираєте відповіді в Google Forms</h3>
+        <p>Потім копіюєте в Excel, рахуєте вручну. CSV не відкривається, колонки зʼїжджають, дані губляться.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <h3>Витрачаєте вечори на аналіз</h3>
+        <p>Коментарі треба прочитати, згрупувати по темах, зробити таблицю. Це 3-5 годин для команди на 100 людей.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.5c0 1.5-2 2-2.4 3.3"/><path d="M12 17h.01"/></svg>
+        </div>
+        <h3>Не знаєте що робити з даними</h3>
+        <p>Є цифра +18%, але що з нею далі? Які конкретні дії для менеджерів? Куди інвестувати увагу?</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ДО / ПІСЛЯ ============ -->
+<section class="sec" style="background: #fff;">
+  <div class="wrap">
+    <span class="sec-eyebrow">Цінність</span>
+    <h2 class="sec-title">Як зміниться діагностика коефіцієнта лояльності з eNPS-сервісом від <span class="brand-accent">HR. Час діяти!</span></h2>
+    <p class="sec-sub">Порівняйте свій звичайний процес із тим, що ви отримуєте з eNPS-сервісом.</p>
+
+    <div class="compare-block">
+      <div class="compare-side before">
+        <span class="compare-title">До</span>
+        <h3>Ручний процес</h3>
+        <div class="compare-body">
+          <ul>
+            <li>Google Forms, копіювання в Excel</li>
+            <li>Формули eNPS шукаєте заново</li>
+            <li>3-5 годин на аналіз коментарів</li>
+            <li>Сегменти рахуєте вручну</li>
+            <li>Звіт для керівництва з нуля</li>
+            <li>Висновки і рекомендації своїми силами</li>
+            <li>Історія розкидана по різних Excel-файлах</li>
+            <li>Не знаєте, що означає ваша цифра</li>
+          </ul>
+          <div class="compare-summary">
+            <div class="compare-summary-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div class="compare-summary-text">
+              <span class="compare-summary-label">Час HR на дослідження</span>
+              <span class="compare-summary-value">до 5 днів</span>
+              <span class="compare-summary-hint">стрес і втома гарантовані</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-arrow">→</div>
+      <div class="compare-side after">
+        <span class="compare-title">Після</span>
+        <h3>eNPS сервіс</h3>
+        <div class="compare-body">
+          <ul>
+            <li>Анкета за 1 хв з шаблону</li>
+            <li>Лінк і QR генеруються автоматично</li>
+            <li>Дашборд у реальному часі</li>
+            <li>Сегменти і фільтри в один клік</li>
+            <li>Готові шаблони звітів</li>
+            <li>Рекомендації на основі результатів eNPS</li>
+            <li>Історія всіх опитувань в одному кабінеті</li>
+            <li>Українською: інтерфейс, питання, рекомендації</li>
+          </ul>
+          <div class="compare-summary">
+            <div class="compare-summary-icon">
+              <svg viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            </div>
+            <div class="compare-summary-text">
+              <span class="compare-summary-label">Час HR на дослідження</span>
+              <span class="compare-summary-value">5 хв</span>
+              <span class="compare-summary-hint">решту робить сервіс</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ЯК ФОРМУЄТЬСЯ eNPS ============ -->
+<section class="sec" id="methodology" style="background: var(--paper); padding-top: clamp(20px, 3vw, 36px);">
+  <div class="wrap">
+    <span class="sec-eyebrow">Методика</span>
+    <h2 class="sec-title">Що таке eNPS і як його читати</h2>
+    <p class="sec-sub">eNPS – це швидкий індикатор довіри та якості employee experience. За однією цифрою – реальні настрої команди.</p>
+
+    <div class="value-block">
+      <div class="value-row">
+        <div class="loyalty-scale-wrap no-margin-top">
+          <div class="loyalty-scale-grid">
+            <div class="ls-cell det">0</div>
+            <div class="ls-cell det">1</div>
+            <div class="ls-cell det">2</div>
+            <div class="ls-cell det">3</div>
+            <div class="ls-cell det">4</div>
+            <div class="ls-cell det">5</div>
+            <div class="ls-cell det">6</div>
+            <div class="ls-cell pas">7</div>
+            <div class="ls-cell pas">8</div>
+            <div class="ls-cell pro">9</div>
+            <div class="ls-cell pro">10</div>
+          </div>
+          <div class="loyalty-legend">
+            <div class="ll-item">
+              <span class="ll-dot det"></span>
+              <div><strong>0-6</strong><span>детрактори</span></div>
+            </div>
+            <div class="ll-item">
+              <span class="ll-dot pas"></span>
+              <div><strong>7-8</strong><span>нейтрали</span></div>
+            </div>
+            <div class="ll-item">
+              <span class="ll-dot pro"></span>
+              <div><strong>9-10</strong><span>промоутери</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="formula-box">
+          <div class="formula-row">
+            <div class="formula-part p">
+              <span>% промоутерів</span>
+              <strong>58%</strong>
+            </div>
+            <span class="formula-op">−</span>
+            <div class="formula-part d">
+              <span>% детракторів</span>
+              <strong>16%</strong>
+            </div>
+            <span class="formula-op">=</span>
+            <div class="formula-part r">
+              <span>eNPS</span>
+              <strong>+42%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="methodology-text">
+        <p><b>Коефіцієнт лояльності (eNPS)</b> – одна з ключових метрик організаційного здоровʼя. Показує прихильність співробітників до компанії і прямо впливає на ефективність команди, коефіцієнт плинності та силу бренду роботодавця.</p>
+        <p>Команда відповідає на одне питання за шкалою 0-10: «Наскільки ймовірно ви порекомендуєте компанію як місце роботи?». Сервіс розподіляє відповіді на три групи і рахує формулу автоматично. Результат від -100% до +100%.</p>
+      </div>
+    </div>
+
+    <!-- Showcase: реальні приклади елементів звіту і дашборду -->
+    <div class="showcase-wrap">
+      <div class="showcase-head">
+        <h3>Як виглядають реальні результати опитування</h3>
+        <p>Кожна плашка – живий приклад того, що ви побачите у дашборді і звіті після першого опитування.</p>
+      </div>
+
+      <div class="showcase-grid">
+
+        <!-- 1. eNPS score -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-score">
+            <div class="ms-num">+42<span>%</span></div>
+            <div class="ms-status">Сильний результат</div>
+            <div class="ms-line"></div>
+            <div class="ms-meta">eNPS Q2 2026 · 82 відповіді</div>
+          </div>
+          <div class="showcase-info">
+            <strong>Один погляд – один висновок</strong>
+            <span>Велика цифра eNPS і автоматичний вердикт: сильно, стабільно чи ризик. Не треба рахувати самому.</span>
+          </div>
+        </div>
+
+        <!-- 2. Heatmap відділи × квартали -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-heatmap">
+            <div class="mh-row mh-head">
+              <span></span><span>Q3</span><span>Q4</span><span>Q1</span><span>Q2</span>
+            </div>
+            <div class="mh-row">
+              <span>Розробка</span><span class="mh c4">+24</span><span class="mh c5">+38</span><span class="mh c6">+55</span><span class="mh c6">+58</span>
+            </div>
+            <div class="mh-row">
+              <span>Маркетинг</span><span class="mh c3">+12</span><span class="mh c4">+22</span><span class="mh c4">+30</span><span class="mh c4">+25</span>
+            </div>
+            <div class="mh-row">
+              <span>Продажі</span><span class="mh c3">+15</span><span class="mh c4">+28</span><span class="mh c5">+40</span><span class="mh c5">+44</span>
+            </div>
+            <div class="mh-row">
+              <span>Фінанси</span><span class="mh c2">+4</span><span class="mh c3">+11</span><span class="mh c3">+18</span><span class="mh c4">+22</span>
+            </div>
+          </div>
+          <div class="showcase-info">
+            <strong>Динаміка по відділах</strong>
+            <span>Червоні клітинки – проблемні зони. Зелені – команди, де працюють практики, які варто масштабувати.</span>
+          </div>
+        </div>
+
+        <!-- 3. Сегменти / eNPS по відділах -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-segments">
+            <div class="msg-row"><span class="msg-name">Розробка</span><span class="msg-val good">+58</span><div class="msg-bar"><span class="b-g" style="width:72%"></span><span class="b-y" style="width:18%"></span><span class="b-r" style="width:10%"></span></div></div>
+            <div class="msg-row"><span class="msg-name">Продажі</span><span class="msg-val good">+44</span><div class="msg-bar"><span class="b-g" style="width:60%"></span><span class="b-y" style="width:24%"></span><span class="b-r" style="width:16%"></span></div></div>
+            <div class="msg-row"><span class="msg-name">Маркетинг</span><span class="msg-val ok">+25</span><div class="msg-bar"><span class="b-g" style="width:48%"></span><span class="b-y" style="width:29%"></span><span class="b-r" style="width:23%"></span></div></div>
+            <div class="msg-row"><span class="msg-name">Фінанси</span><span class="msg-val ok">+22</span><div class="msg-bar"><span class="b-g" style="width:42%"></span><span class="b-y" style="width:38%"></span><span class="b-r" style="width:20%"></span></div></div>
+          </div>
+          <div class="showcase-info">
+            <strong>eNPS по сегментах</strong>
+            <span>Хто тягне команду, а хто провисає. Розрив між найкращим і найгіршим відділом – сигнал для адресних дій.</span>
+          </div>
+        </div>
+
+        <!-- 4. Динаміка vs минулий період -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-dyn">
+            <div class="md-block">
+              <span class="md-lbl">Минулий квартал</span>
+              <span class="md-num">+24%</span>
+            </div>
+            <div class="md-arrow">→</div>
+            <div class="md-block current">
+              <span class="md-lbl">Зараз</span>
+              <span class="md-num">+42%</span>
+            </div>
+            <div class="md-delta">+18 пунктів</div>
+          </div>
+          <div class="showcase-info">
+            <strong>Динаміка vs минулий період</strong>
+            <span>Чи стало краще порівняно з попереднім опитуванням. Показує тренд і ефект ваших дій.</span>
+          </div>
+        </div>
+
+        <!-- 5. Теми у коментарях з сентиментом -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-themes">
+            <div class="mt-row"><span class="mt-name">Менеджмент</span><span class="mt-bar" style="width:78%"></span><span class="mt-cnt">12</span><span class="mt-sent pos">позитив</span></div>
+            <div class="mt-row"><span class="mt-name">Команда</span><span class="mt-bar" style="width:65%"></span><span class="mt-cnt">10</span><span class="mt-sent pos">позитив</span></div>
+            <div class="mt-row"><span class="mt-name">Компенсація</span><span class="mt-bar" style="width:55%"></span><span class="mt-cnt">8</span><span class="mt-sent neg">негатив</span></div>
+            <div class="mt-row"><span class="mt-name">Процеси</span><span class="mt-bar" style="width:38%"></span><span class="mt-cnt">6</span><span class="mt-sent mix">змішане</span></div>
+          </div>
+          <div class="showcase-info">
+            <strong>Про що говорять найчастіше</strong>
+            <span>Сервіс знаходить теми у коментарях, рахує згадки і визначає тон: позитивний, негативний чи змішаний.</span>
+          </div>
+        </div>
+
+        <!-- 6. Цитата співробітника -->
+        <div class="showcase-card">
+          <div class="showcase-mock mock-quote">
+            <div class="mq-head"><span class="mq-score">9</span><span class="mq-cat">Промоутер</span><span class="mq-seg">Розробка</span></div>
+            <div class="mq-text">"Класний колектив, прозорі процеси і менеджер, який чує. Хочеться рости разом з компанією."</div>
+          </div>
+          <div class="showcase-info">
+            <strong>Голоси команди</strong>
+            <span>Реальні слова замість статистики. Сервіс підбирає найрепрезентативніші відповіді з кожного сегменту.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Превʼю що отримує клієнт -->
+    <div class="previews-wrap">
+      <div class="previews-head">
+        <h3>Що саме ви отримуєте після оплати</h3>
+        <span>Реальні екрани сервісу та текст звіту</span>
+      </div>
+      <div class="previews-grid">
+
+        <!-- Survey preview (реальний вигляд форми) -->
+        <div class="preview-card">
+          <span class="preview-tag">Опитування</span>
+          <h4>Що бачить співробітник</h4>
+          <p>Анкета за посиланням, анонімно, 2 хвилини.</p>
+          <div class="preview-mock real-survey">
+            <span class="rs-eyebrow">Опитування</span>
+            <div class="rs-company">Nova Team</div>
+            <div class="rs-intro">Опитування анонімне. Нам важливо зрозуміти, що допомагає вам рекомендувати компанію як місце роботи.</div>
+            <div class="rs-question">З якою ймовірністю ви порекомендуєте роботу в компанії своїм друзям чи знайомим?</div>
+            <div class="rs-scale">
+              <span class="rs-num d">0</span><span class="rs-num d">1</span><span class="rs-num d">2</span><span class="rs-num d">3</span><span class="rs-num d">4</span><span class="rs-num d">5</span><span class="rs-num d">6</span><span class="rs-num p">7</span><span class="rs-num p">8</span><span class="rs-num pr sel">9</span><span class="rs-num pr">10</span>
+            </div>
+            <div class="rs-hint"><span>Не порекомендую</span><span>Порекомендую</span></div>
+            <div class="rs-fields">
+              <div class="rs-field"><label>Відділ</label><div class="rs-input">Розробка</div></div>
+              <div class="rs-field"><label>Стаж</label><div class="rs-input">2-5 років</div></div>
+            </div>
+            <div class="rs-submit">Надіслати відповідь</div>
+          </div>
+        </div>
+
+        <!-- Dashboard preview (реальний вигляд дашборду) -->
+        <div class="preview-card">
+          <span class="preview-tag">Дашборд</span>
+          <h4>Що бачить HR у сервісі</h4>
+          <p>Живі результати, сегменти, інсайти в особистому кабінеті.</p>
+          <div class="preview-mock real-dash">
+            <div class="rd-card">
+              <div class="rd-score">+42%</div>
+              <div class="rd-status">Сильний результат</div>
+              <div class="rd-summary">Більшість готова рекомендувати. Попрацюйте з нейтралами – там резерв росту.</div>
+            </div>
+            <div class="rd-metrics">
+              <div><strong>68%</strong><span>participation</span></div>
+              <div><strong>32%</strong><span>silence gap</span></div>
+              <div><strong>82</strong><span>відповідей</span></div>
+              <div><strong>120</strong><span>у команді</span></div>
+            </div>
+            <div class="rd-bars">
+              <div class="rd-bar-row"><span class="rd-lbl">Детрактори 0-6</span><div class="rd-track"><span class="rd-fill r" style="width: 16%;"></span></div><span class="rd-val">16%</span></div>
+              <div class="rd-bar-row"><span class="rd-lbl">Нейтрали 7-8</span><div class="rd-track"><span class="rd-fill y" style="width: 26%;"></span></div><span class="rd-val">26%</span></div>
+              <div class="rd-bar-row"><span class="rd-lbl">Промоутери 9-10</span><div class="rd-track"><span class="rd-fill g" style="width: 58%;"></span></div><span class="rd-val">58%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report preview (реальний текст звіту) -->
+        <div class="preview-card">
+          <span class="preview-tag">Звіт</span>
+          <h4>Що можна надіслати керівництву</h4>
+          <p>Готовий текст зі всіма ключовими цифрами – копіюйте у Slack чи email.</p>
+          <div class="preview-mock real-report">
+<pre>Підсумок eNPS Q2 2026
+────────────────────
+Компанія: Nova Team
+Дата: 20 квітня 2026
+
+РЕЗУЛЬТАТ
+eNPS: +42% (Сильний)
+Participation: 68% (82/120)
+Промоутери:   58%
+Нейтрали:     26%
+Детрактори:   16%
+
+КЛЮЧОВЕ
+• Розробка лідер (+58%)
+• Продажі зросли до +44%
+• Фінанси: звернути увагу</pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ТАРИФ ============ -->
+<section class="sec" id="pricing" style="background: #fff;">
+  <div class="wrap">
+    <span class="sec-eyebrow">Тариф</span>
+    <h2 class="sec-title">Оплачуйте по одному або беріть пакет зі знижкою</h2>
+    <p class="sec-sub">Кредити зберігаються в кабінеті. Запускайте опитування, коли потрібно — щомісяця, щокварталу чи раз на рік. Знижка економить до 20%.</p>
+
+    <div class="pricing-grid">
+
+      <!-- Пакет 1: одне -->
+      <div class="pricing-card">
+        <div class="pc-head">
+          <span class="pc-qty">1</span>
+          <span class="pc-qty-lbl">опитування</span>
+        </div>
+        <div class="pc-price">
+          <span class="pc-amount">790</span>
+          <span class="pc-currency">грн.</span>
+        </div>
+        <span class="pc-per">790 грн. за опитування</span>
+        <ul class="pc-feats">
+          <li>Спробувати сервіс</li>
+          <li>Базова ціна без знижки</li>
+          <li>Один цикл діагностики</li>
+        </ul>
+        <a class="btn btn-outline pc-cta" href="screen-4-cabinet.html#pay">Оплатити 790 грн.</a>
+      </div>
+
+      <!-- Пакет 4: оптимально -->
+      <div class="pricing-card popular">
+        <span class="pc-badge">Оптимальний вибір</span>
+        <div class="pc-head">
+          <span class="pc-qty">4</span>
+          <span class="pc-qty-lbl">опитування</span>
+        </div>
+        <div class="pc-price">
+          <span class="pc-amount">2 844</span>
+          <span class="pc-currency">грн.</span>
+          <span class="pc-discount">-10%</span>
+        </div>
+        <span class="pc-per">711 грн. за опитування · економія 316 грн.</span>
+        <ul class="pc-feats">
+          <li>Один раз на квартал протягом року</li>
+          <li>Динаміка по кварталах у звіті</li>
+          <li>Heatmap відділ × період</li>
+        </ul>
+        <a class="btn btn-dark pc-cta" href="screen-4-cabinet.html#pay">Оплатити 2 844 грн.</a>
+      </div>
+
+      <!-- Пакет 10: максимум -->
+      <div class="pricing-card">
+        <div class="pc-head">
+          <span class="pc-qty">10</span>
+          <span class="pc-qty-lbl">опитувань</span>
+        </div>
+        <div class="pc-price">
+          <span class="pc-amount">6 320</span>
+          <span class="pc-currency">грн.</span>
+          <span class="pc-discount big">-20%</span>
+        </div>
+        <span class="pc-per">632 грн. за опитування · економія 1 580 грн.</span>
+        <ul class="pc-feats">
+          <li>Регулярна діагностика декілька років</li>
+          <li>Pulse-опитування щомісяця</li>
+          <li>Глибока довгострокова динаміка</li>
+        </ul>
+        <a class="btn btn-outline pc-cta" href="screen-4-cabinet.html#pay">Оплатити 6 320 грн.</a>
+      </div>
+
+    </div>
+
+    <div class="pricing-included">
+      <h3>В усі пакети входить</h3>
+      <ul class="pricing-included-list">
+        <li>Будь-який розмір команди, без обмежень по кількості співробітників</li>
+        <li>Конструктор анкети з шаблоном eNPS і додатковими відкритими питаннями</li>
+        <li>Унікальне анонімне посилання і QR-код для команди</li>
+        <li>Дашборд у реальному часі: eNPS, participation rate, сегменти</li>
+        <li>Рекомендації дій за рівнем eNPS і динаміка vs минулий період</li>
+        <li>Експорт звіту і відповідей у PDF, Word, PowerPoint, Excel, Google Slides, Canva</li>
+        <li>Історія всіх ваших опитувань в особистому кабінеті</li>
+      </ul>
+    </div>
+
+    <p class="pricing-note">Кредити не списуються до запуску опитування. Купили пакет — використаєте у зручному вам ритмі. Жодних автосписань і підписок.</p>
+  </div>
+</section>
+
+<!-- ============ ФІНАЛЬНИЙ CTA ============ -->
+<section class="sec" style="background: var(--paper);">
+  <div class="wrap">
+    <div class="cta-final">
+      <h2>Готові виміряти лояльність команди вже цього тижня?</h2>
+      <p>Від 790 грн. за одне опитування. Усі функції включено: дашборд, сегменти, рекомендації по eNPS, експорт. Без підписки і без обмежень по команді.</p>
+      <a class="btn btn-yellow" href="#pricing">Оплатити і почати →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a class="brand" href="#top" style="color: #fff;">
+      <div class="brand-logo"><img src="hr-logo-yellow.svg" alt="HR. Час діяти!"></div>
+      <div class="brand-txt">
+        <strong>HR. Час діяТИ!</strong>
+        <span style="color: rgba(255,255,255,0.6)">© Катерина Мисенко</span>
+      </div>
+    </a>
+    <nav class="footer-nav">
+      <a href="#how">Як працює</a>
+      <a href="#features">Можливості</a>
+      <a href="#methodology">Методика</a>
+    </nav>
+    <div class="footer-copy">2026 · HR. Час діяТИ!<br>Зроблено в Україні 🇺🇦</div>
+  </div>
+</footer>
+
+</body>
+</html>

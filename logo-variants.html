@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Варіанти логотипу | HR. Час діяТИ!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800;900&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #e3b64b;
+    --yellow-bright: #f0ce21;
+    --green: #2f6f5e;
+    --green-dark: #0e2b1d;
+    --coral: #e85d3a;
+    --ink: #1a1a1a;
+    --paper: #f9f7f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 80px;
+    font-family: "Manrope", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .shell { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  .lead { color: #6b6b6b; margin: 0 0 36px; font-size: 15px; max-width: 680px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .variant {
+    background: #fff;
+    border: 1px solid #e6e2d8;
+    border-radius: 18px;
+    padding: 24px;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .variant h3 {
+    font-family: "Unbounded", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    margin: 0;
+    color: var(--green-dark);
+    text-align: center;
+  }
+  .variant .desc {
+    font-size: 13px;
+    color: #6b6b6b;
+    text-align: center;
+    margin: 0;
+  }
+
+  .logo-box {
+    width: 240px; height: 240px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* --- Variant 1: classic as-is, brand yellow + Unbounded --- */
+  .v1 {
+    background: var(--yellow);
+    border-radius: 28px;
+  }
+  .v1 .txt {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--green-dark);
+    text-align: center;
+    line-height: 1;
+  }
+  .v1 .top { font-size: 72px; letter-spacing: -0.04em; }
+  .v1 .bot { font-size: 36px; letter-spacing: -0.03em; margin-top: 14px; }
+
+  /* --- Variant 2: з точкою-акцентом --- */
+  .v2 {
+    background: var(--yellow);
+    border-radius: 28px;
+  }
+  .v2 .txt {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--green-dark);
+    text-align: center;
+    line-height: 1;
+  }
+  .v2 .top { font-size: 72px; letter-spacing: -0.04em; }
+  .v2 .bot { font-size: 36px; letter-spacing: -0.03em; margin-top: 14px; }
+  .v2::after {
+    content: "";
+    position: absolute;
+    top: 22px; right: 22px;
+    width: 18px; height: 18px;
+    background: var(--coral);
+    border-radius: 50%;
+  }
+
+  /* --- Variant 3: темний фон, жовтий текст --- */
+  .v3 {
+    background: linear-gradient(170deg, #0e2b1d 0%, #112f21 55%, #081a0f 100%);
+    border-radius: 28px;
+    position: relative;
+  }
+  .v3 .txt {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--yellow);
+    text-align: center;
+    line-height: 1;
+  }
+  .v3 .top { font-size: 72px; letter-spacing: -0.04em; }
+  .v3 .bot { font-size: 36px; letter-spacing: -0.03em; margin-top: 14px; color: #fff; }
+  .v3::after {
+    content: "";
+    position: absolute;
+    top: 22px; right: 22px;
+    width: 18px; height: 18px;
+    background: var(--yellow);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(227,182,75,0.25);
+  }
+
+  /* --- Variant 4: "HR" зверху + підкреслення кораловим --- */
+  .v4 {
+    background: var(--yellow);
+    border-radius: 28px;
+  }
+  .v4 .inner {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px;
+  }
+  .v4 .hr-big {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--green-dark);
+    font-size: 88px; line-height: 1;
+    letter-spacing: -0.05em;
+  }
+  .v4 .underline {
+    width: 72px; height: 6px;
+    background: var(--coral);
+    border-radius: 3px;
+  }
+  .v4 .tag {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--green-dark);
+    letter-spacing: -0.02em;
+    margin-top: 4px;
+  }
+
+  /* --- Variant 5: мінімалістичний з крапкою між словами --- */
+  .v5 {
+    background: var(--yellow);
+    border-radius: 28px;
+  }
+  .v5 .txt {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--green-dark);
+    text-align: center;
+    line-height: 1.05;
+  }
+  .v5 .hr { font-size: 60px; letter-spacing: -0.04em; }
+  .v5 .dot { color: var(--coral); font-size: 60px; margin: 0 4px; }
+  .v5 .chas {
+    font-size: 28px;
+    letter-spacing: -0.03em;
+    margin-top: 12px;
+    display: block;
+  }
+  .v5 .chas-accent { color: var(--coral); }
+
+  /* --- Variant 6: компактний "HR" з тегом eNPS (для сервісу) --- */
+  .v6 {
+    background: var(--yellow);
+    border-radius: 28px;
+  }
+  .v6 .hr {
+    font-family: "Unbounded", sans-serif;
+    font-weight: 900;
+    color: var(--green-dark);
+    font-size: 112px; line-height: 1;
+    letter-spacing: -0.05em;
+  }
+  .v6 .tag-pill {
+    position: absolute;
+    bottom: 24px;
+    padding: 6px 14px;
+    background: var(--green-dark);
+    color: var(--yellow);
+    font-family: "Unbounded", sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+
+  .export-hint {
+    margin-top: 40px;
+    padding: 20px 24px;
+    background: #fff;
+    border: 1px dashed #e6e2d8;
+    border-radius: 14px;
+    font-size: 14px;
+    color: #444;
+  }
+  .export-hint strong { color: var(--green-dark); font-family: "Unbounded", sans-serif; }
+  .export-hint code {
+    background: #eceae1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <h1>Варіанти логотипу для HR. Час діяти!</h1>
+  <p class="lead">Кожен варіант зроблений у фірмових кольорах і шрифті лендінгу (Unbounded). Квадрат 240×240, можна масштабувати без втрати якості.</p>
+
+  <div class="grid">
+
+    <div class="variant">
+      <h3>Варіант 1: Класичний</h3>
+      <div class="logo-box v1">
+        <div>
+          <div class="txt top">HR</div>
+          <div class="txt bot">ЧАС ДІЯТИ!</div>
+        </div>
+      </div>
+      <p class="desc">Ваш поточний стиль, але у шрифті Unbounded і бренд-відтінку жовтого. Чисто, консистентно з лендінгом.</p>
+    </div>
+
+    <div class="variant">
+      <h3>Варіант 2: З акцентом</h3>
+      <div class="logo-box v2">
+        <div>
+          <div class="txt top">HR</div>
+          <div class="txt bot">ЧАС ДІЯТИ!</div>
+        </div>
+      </div>
+      <p class="desc">Класичний плюс маленька коралова крапка у куті - підсилює динаміку і впізнаваність.</p>
+    </div>
+
+    <div class="variant">
+      <h3>Варіант 3: Темний інверс</h3>
+      <div class="logo-box v3">
+        <div>
+          <div class="txt top">HR</div>
+          <div class="txt bot">ЧАС ДІЯТИ!</div>
+        </div>
+      </div>
+      <p class="desc">Темно-зелений фон як у hero лендінгу, жовтий «HR». Добре контрастує, вигадно виглядає на світлих постах.</p>
+    </div>
+
+    <div class="variant">
+      <h3>Варіант 4: З підкресленням</h3>
+      <div class="logo-box v4">
+        <div class="inner">
+          <div class="hr-big">HR</div>
+          <div class="underline"></div>
+          <div class="tag">Час діяти!</div>
+        </div>
+      </div>
+      <p class="desc">Велика «HR», коралова риска, «Час діяти!» знизу малими літерами. Сучасно, дихає.</p>
+    </div>
+
+    <div class="variant">
+      <h3>Варіант 5: З кораловою крапкою</h3>
+      <div class="logo-box v5">
+        <div>
+          <div class="txt"><span class="hr">HR</span><span class="dot">.</span></div>
+          <div class="chas">ЧАС <span class="chas-accent">ДІЯТИ!</span></div>
+        </div>
+      </div>
+      <p class="desc">Підкреслює «ДІЯТИ!» кораловим - перегукується з закликом до дії на кнопці лендінгу.</p>
+    </div>
+
+    <div class="variant">
+      <h3>Варіант 6: Для сервісу (eNPS)</h3>
+      <div class="logo-box v6">
+        <div class="hr">HR</div>
+        <div class="tag-pill">eNPS сервіс</div>
+      </div>
+      <p class="desc">Компактніша варіація для соцмереж сервісу: велике «HR» і зелена пігулка внизу з назвою продукту.</p>
+    </div>
+
+  </div>
+
+  <div class="export-hint">
+    <strong>Як зберегти як PNG для Telegram чи соцмереж:</strong><br><br>
+    1. Відкрийте цей файл у Chrome або Safari.<br>
+    2. Зробіть скрін потрібного квадратика (на Mac: <code>Cmd + Shift + 4</code>, на Windows: <code>Win + Shift + S</code>, виділити тільки квадрат).<br>
+    3. Для Telegram-аватарки достатньо 640×640. Якщо потрібен більший розмір, відкрийте DevTools (<code>F12</code> → <code>Cmd/Ctrl+Shift+M</code>), поставте зум 200% і зробіть скрін.<br><br>
+    Або скажіть який варіант обрали, і я згенерую PNG 640×640 та 1024×1024 прямо у файл.
+  </div>
+</div>
+
+</body>
+</html>
