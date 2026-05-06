@@ -2817,11 +2817,13 @@ async function initAuth() {
   // Demo режими (#demo, #demo-full) пропускаємо - вони використовують локальний mock-юзер
   if (hash !== "#demo" && hash !== "#demo-full") {
     try {
-      // Таймаут 5с щоб спінер не застрягав якщо Supabase висить
+      // Таймаут 3с щоб спінер не застрягав якщо Supabase висить
       const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("Supabase timeout")), ms));
-      const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout(5000)]);
+      const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout(3000)]);
       if (session) {
-        await Promise.race([loadUserProfile(), timeout(8000)]);
+        // Завантажуємо профіль з таймаутом 4с. Якщо опитування грузяться повільно -
+        // вони підвантажаться у фоні і список перемалюється самостійно.
+        await Promise.race([loadUserProfile(), timeout(4000)]);
       } else if (state.loggedIn) {
         // У localStorage є флаг логіну, але реальної сесії Supabase нема -
         // це залишок старої mock-сесії. Скидаємо.
@@ -2974,6 +2976,11 @@ async function loadUserProfile() {
     };
     state.loggedIn = true;
     state.credits = profile.credits || 0;
+    // Зберігаємо профіль і кредити одразу - щоб навіть якщо опитування довго грузяться,
+    // баланс на бейджі вже був правильний
+    saveState();
+    if (typeof updateUserChip === "function") updateUserChip();
+    if (typeof updateCreditsBadge === "function") updateCreditsBadge();
     // Завантажуємо опитування з Supabase (заміняє локальний state.surveys)
     try {
       const surveys = await api.listSurveys();
@@ -2991,12 +2998,14 @@ async function loadUserProfile() {
         surveys.forEach(s => { s.responses = byId[s.id] || []; });
       }
       state.surveys = surveys;
+      saveState();
+      // Якщо ми вже на кабінеті - перемалюємо список опитувань
+      if (typeof renderCabinet === "function" && document.getElementById("cabinetView")?.classList.contains("active")) {
+        renderCabinet();
+      }
     } catch (e) {
       console.warn("Failed to load surveys from Supabase:", e);
     }
-    saveState();
-    if (typeof updateUserChip === "function") updateUserChip();
-    if (typeof updateCreditsBadge === "function") updateCreditsBadge();
     // Якщо щойно повернулися з оплати - показуємо повідомлення
     if (sessionStorage.getItem("paymentReturn") === "1") {
       sessionStorage.removeItem("paymentReturn");
