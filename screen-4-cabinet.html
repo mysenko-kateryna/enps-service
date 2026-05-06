@@ -31,6 +31,7 @@
       userId: row.user_id,
       title: row.title || "",
       company: row.company || "",
+      team: row.team || "",
       status: row.status || "draft",
       surveyDate: row.survey_date || null,
       deadline: row.deadline || null,
@@ -54,6 +55,7 @@
     const out = {};
     if ("title" in s) out.title = s.title;
     if ("company" in s) out.company = s.company;
+    if ("team" in s) out.team = s.team || null;
     if ("status" in s) out.status = s.status;
     if ("surveyDate" in s) out.survey_date = s.surveyDate || null;
     if ("deadline" in s) out.deadline = s.deadline || null;
@@ -2234,6 +2236,7 @@
             <label>Дата старту діагностики *<input type="date" id="fldDate" required></label>
             <label>Компанія *<input type="text" id="fldCompany" required></label>
             <label>Кількість співробітників *<input type="number" id="fldEmployeeCount" min="1" required></label>
+            <label class="full">Команда / Сегмент <span class="hint-line" style="display: inline; margin-left: 6px; color: var(--muted); font-weight: 500; font-size: 12px;">(необовʼязково, для серії діагностик)</span><input type="text" id="fldTeam" placeholder="Наприклад: Київський офіс, Sales-департамент, Q2 2026"><span class="hint-line">Якщо ви працюєте з кількома компаніями або відділами, додайте мітку щоб ізолювати серії діагностик. Динаміка рахуватиметься тільки серед опитувань з тією ж міткою.</span></label>
             <label class="full">Дедлайн <span class="hint-line" style="display: inline; margin-left: 6px; color: var(--muted); font-weight: 500; font-size: 12px;">(необовʼязково)</span><input type="date" id="fldDeadline"></label>
           </div>
           <div class="main-question-box">
@@ -3385,7 +3388,9 @@ function surveyCardHTML(s) {
         <h3>${escapeHtml(s.title)}</h3>
         <div class="survey-meta">
           ${badge}
-          ${created ? `<span>Створено ${created}</span>` : ""}
+          ${s.company ? `<span>${escapeHtml(s.company)}</span>` : ""}
+          ${s.team ? `<span class="meta-sep">·</span><span title="Команда / Сегмент">${escapeHtml(s.team)}</span>` : ""}
+          ${created ? `<span class="meta-sep">·</span><span>Створено ${created}</span>` : ""}
           ${deadline ? `<span class="meta-sep">·</span><span>Дедлайн ${deadline}</span>` : ""}
         </div>
       </div>
@@ -3579,6 +3584,7 @@ function openCreateForm(draftId = null) {
   document.getElementById("fldDate").value = draft?.surveyDate || new Date().toISOString().slice(0, 10);
   document.getElementById("fldCompany").value = draft?.company || state.user.company || "";
   document.getElementById("fldEmployeeCount").value = draft?.employeeCount || "";
+  document.getElementById("fldTeam").value = draft?.team || "";
   document.getElementById("fldDeadline").value = draft?.deadline || "";
   document.getElementById("fldIntro").value = draft?.introText || "Опитування анонімне. Нам важливо зрозуміти, що допомагає вам рекомендувати компанію як місце роботи, а що варто покращити.";
   document.getElementById("fldMainQ").value = draft?.mainQuestion || "З якою ймовірністю ви порекомендуєте роботу в компанії своїм друзям чи знайомим?";
@@ -3669,6 +3675,7 @@ function collectFormData() {
     surveyDate: document.getElementById("fldDate").value,
     company: document.getElementById("fldCompany").value.trim(),
     employeeCount: parseInt(document.getElementById("fldEmployeeCount").value, 10) || 0,
+    team: document.getElementById("fldTeam").value.trim(),
     deadline: document.getElementById("fldDeadline").value,
     introText: document.getElementById("fldIntro").value.trim(),
     mainQuestion: document.getElementById("fldMainQ").value.trim(),
@@ -3825,6 +3832,7 @@ function renderSurveyDetail(s) {
   document.getElementById("dtlTitle").textContent = s.title;
   const parts = [];
   if (s.company) parts.push(s.company);
+  if (s.team) parts.push(s.team);
   if (s.surveyDate) parts.push("проводиться з " + new Date(s.surveyDate).toLocaleDateString("uk-UA"));
   if (s.deadline) parts.push("дедлайн " + new Date(s.deadline).toLocaleDateString("uk-UA"));
   document.getElementById("dtlMeta").textContent = parts.join(" · ");
@@ -3948,6 +3956,7 @@ function renderCollectTab(s) {
 
         <div class="snapshot">
           <div class="snap-cell"><span>Компанія</span><strong>${escapeHtml(s.company || "н/д")}</strong></div>
+          ${s.team ? `<div class="snap-cell"><span>Команда / Сегмент</span><strong>${escapeHtml(s.team)}</strong></div>` : ""}
           <div class="snap-cell"><span>Дата старту діагностики</span><strong>${s.surveyDate ? new Date(s.surveyDate).toLocaleDateString("uk-UA") : "н/д"}</strong></div>
           <div class="snap-cell"><span>Співробітників</span><strong>${s.employeeCount || "н/д"}</strong></div>
           <div class="snap-cell"><span>Ваш баланс</span><strong>${creditsLeft} оплачених</strong></div>
@@ -3982,6 +3991,7 @@ function renderCollectTab(s) {
 
       <div class="snapshot">
         <div class="snap-cell"><span>Компанія</span><strong>${escapeHtml(s.company || "н/д")}</strong></div>
+        ${s.team ? `<div class="snap-cell"><span>Команда / Сегмент</span><strong>${escapeHtml(s.team)}</strong></div>` : ""}
         <div class="snap-cell"><span>Дата старту діагностики</span><strong>${s.surveyDate ? new Date(s.surveyDate).toLocaleDateString("uk-UA") : "н/д"}</strong></div>
         <div class="snap-cell"><span>Співробітників</span><strong>${s.employeeCount || "н/д"}</strong></div>
       </div>
@@ -4352,7 +4362,7 @@ function renderReportTab(s) {
         <div>
           <span class="eyebrow">Звіт</span>
           <h1 class="report-title">${escapeHtml(s.title || s.company || "Опитування")}</h1>
-          <p class="report-meta">${escapeHtml(s.company || "")}${periodLabel ? " · " + periodLabel : ""}${st.total ? " · " + st.total + " " + pluralUA(st.total, "відповідь", "відповіді", "відповідей") : ""}</p>
+          <p class="report-meta">${escapeHtml(s.company || "")}${s.team ? " · " + escapeHtml(s.team) : ""}${periodLabel ? " · " + periodLabel : ""}${st.total ? " · " + st.total + " " + pluralUA(st.total, "відповідь", "відповіді", "відповідей") : ""}</p>
         </div>
         <div class="report-actions">
           <div class="export-menu">
@@ -4727,10 +4737,14 @@ function renderReportTab(s) {
 function findPreviousSurvey(s) {
   if (!s.company) return null;
   const company = s.company.toLowerCase().trim();
+  const team = (s.team || "").toLowerCase().trim();
+  // Без team → опитування стоїть окремо, без серії і без порівняння
+  if (!team) return null;
   const currentStart = s.surveyDate ? new Date(s.surveyDate).getTime() : new Date(s.createdAt).getTime();
   const candidates = state.surveys.filter(x =>
     x.id !== s.id &&
     x.company && x.company.toLowerCase().trim() === company &&
+    (x.team || "").toLowerCase().trim() === team &&
     x.responses && x.responses.length >= 3
   );
   candidates.sort((a, b) => {
@@ -4763,7 +4777,7 @@ function renderDynamicsCard(s, st, participation, prev, prevStats, prevParticipa
   return `
     <div class="report-card">
       <h3 class="report-card-title">Динаміка vs "${escapeHtml(prev.title)}"${period ? ` (${period})` : ""}</h3>
-      <p class="report-card-sub">Порівняння з попереднім опитуванням тієї ж компанії.</p>
+      <p class="report-card-sub">Порівняння з попереднім опитуванням${prev.team ? ` команди / сегменту "${escapeHtml(prev.team)}"` : " тієї ж компанії"}.</p>
       <div class="dyn-grid">
         <div class="dyn-metric">
           <div class="dyn-label">eNPS</div>
