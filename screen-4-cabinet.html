@@ -326,6 +326,7 @@
   .shell { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: clamp(28px, 4vw, 44px) 0 60px; }
   .view { display: none; }
   .view.active { display: block; animation: fade 0.2s ease; }
+  @keyframes bootspin { to { transform: rotate(360deg); } }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
   .page-header {
@@ -2079,6 +2080,14 @@
 </header>
 
 <main class="shell">
+
+  <!-- ЗАВАНТАЖЕННЯ (показується одразу поки initAuth перевіряє Supabase сесію) -->
+  <section class="view active" id="bootView">
+    <div class="auth-wrap" style="text-align: center; padding: 60px 30px;">
+      <div class="boot-spinner" aria-hidden="true" style="width: 36px; height: 36px; margin: 0 auto 16px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: bootspin 0.8s linear infinite;"></div>
+      <p class="helper" style="margin: 0;">Завантаження...</p>
+    </div>
+  </section>
 
   <!-- ВХІД -->
   <section class="view" id="loginView">
