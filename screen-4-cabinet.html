@@ -2205,8 +2205,9 @@
           <li>Кредити списуються тільки тоді, коли запускаєте опитування</li>
           <li>Історія зберігається 1 місяць після закриття кожного</li>
         </ul>
+        <p class="helper" style="margin: 12px 0; font-size: 12.5px;">⚠️ На сторінці оплати <strong>обовʼязково введіть свій email</strong> (mysenko1313@gmail.com якщо це ваш) — кредити нараховуються автоматично саме за email.</p>
         <div class="form-footer">
-          <button class="btn-accent" type="button" onclick="completePayment()" id="payBtn">Оплатити 790 грн.</button>
+          <a class="btn-accent" id="payBtn" href="https://secure.wayforpay.com/button/b67b09c2a9a10" target="_blank" rel="noopener" style="text-align: center;">Оплатити 790 грн.</a>
           <button class="btn-outline" type="button" onclick="showView('cabinetView')">Скасувати</button>
         </div>
       </div>
@@ -2792,6 +2793,14 @@ async function initAuth() {
     renderEmployeeView(parsed.id, parsed.data);
     return;
   }
+  // Повернення після WayForPay оплати: ?payment=return
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("payment") === "return") {
+    // Очищуємо параметр з URL щоб не зациклювалось
+    history.replaceState(null, "", window.location.pathname + window.location.hash);
+    // Повідомлення про оплату покажемо після завантаження кабінету
+    sessionStorage.setItem("paymentReturn", "1");
+  }
   // Спочатку пробуємо відновити сесію з Supabase (для всіх не-employee режимів)
   // Demo режими (#demo, #demo-full) пропускаємо - вони використовують локальний mock-юзер
   if (hash !== "#demo" && hash !== "#demo-full") {
@@ -2964,6 +2973,13 @@ async function loadUserProfile() {
     saveState();
     if (typeof updateUserChip === "function") updateUserChip();
     if (typeof updateCreditsBadge === "function") updateCreditsBadge();
+    // Якщо щойно повернулися з оплати - показуємо повідомлення
+    if (sessionStorage.getItem("paymentReturn") === "1") {
+      sessionStorage.removeItem("paymentReturn");
+      setTimeout(() => {
+        alert(`Оплату обробляємо. Ваш поточний баланс: ${state.credits} ${pluralUA(state.credits, "опитування", "опитування", "опитувань")}.\n\nЯкщо баланс не оновився одразу - зачекайте ~30 секунд і оновіть сторінку (Cmd+R). Інколи WayForPay шле підтвердження не миттєво.`);
+      }, 500);
+    }
     return profile;
   } catch (e) {
     console.error("loadUserProfile failed:", e);
@@ -3537,8 +3553,16 @@ document.addEventListener("change", (e) => {
     document.querySelectorAll(".qty-opt").forEach(el => el.classList.remove("selected"));
     e.target.closest(".qty-opt").classList.add("selected");
     const prices = { "1": "790 грн.", "4": "2 844 грн.", "10": "6 320 грн." };
+    const wfpButtons = {
+      "1": "https://secure.wayforpay.com/button/b67b09c2a9a10",
+      "4": "https://secure.wayforpay.com/button/b219b94681afd",
+      "10": "https://secure.wayforpay.com/button/bcf8be93eb60c"
+    };
     const btn = document.getElementById("payBtn");
-    if (btn) btn.textContent = "Оплатити " + prices[e.target.value];
+    if (btn) {
+      btn.textContent = "Оплатити " + prices[e.target.value];
+      btn.href = wfpButtons[e.target.value];
+    }
   }
 });
 
