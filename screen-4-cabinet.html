@@ -2977,9 +2977,18 @@ async function loadUserProfile() {
     // Завантажуємо опитування з Supabase (заміняє локальний state.surveys)
     try {
       const surveys = await api.listSurveys();
-      // Для кожного survey підвантажуємо responses
-      for (const s of surveys) {
-        s.responses = await api.listResponses(s.id);
+      // Один пакетний запит на всі responses замість N+1 послідовних
+      if (surveys.length > 0) {
+        const ids = surveys.map(s => s.id);
+        const { data: allResp } = await sb.from("responses")
+          .select("*")
+          .in("survey_id", ids)
+          .order("created_at", { ascending: true });
+        const byId = {};
+        (allResp || []).forEach(r => {
+          (byId[r.survey_id] = byId[r.survey_id] || []).push(dbToResponse(r));
+        });
+        surveys.forEach(s => { s.responses = byId[s.id] || []; });
       }
       state.surveys = surveys;
     } catch (e) {
