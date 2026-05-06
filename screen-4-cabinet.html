@@ -2817,9 +2817,11 @@ async function initAuth() {
   // Demo режими (#demo, #demo-full) пропускаємо - вони використовують локальний mock-юзер
   if (hash !== "#demo" && hash !== "#demo-full") {
     try {
-      const { data: { session } } = await sb.auth.getSession();
+      // Таймаут 5с щоб спінер не застрягав якщо Supabase висить
+      const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error("Supabase timeout")), ms));
+      const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout(5000)]);
       if (session) {
-        await loadUserProfile();
+        await Promise.race([loadUserProfile(), timeout(8000)]);
       } else if (state.loggedIn) {
         // У localStorage є флаг логіну, але реальної сесії Supabase нема -
         // це залишок старої mock-сесії. Скидаємо.
@@ -2829,6 +2831,7 @@ async function initAuth() {
       }
     } catch (e) {
       console.warn("Supabase session check failed:", e);
+      // При таймауті залишаємо state як є - якщо є локальний state.user, покажемо кабінет
     }
   }
   // DEMO MODE для редагування візуалу без реєстрації/оплати: #demo
