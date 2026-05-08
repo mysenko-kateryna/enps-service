@@ -124,7 +124,7 @@
   .brand-txt strong { display: block; font-family: "Unbounded", sans-serif; font-size: 14px; font-weight: 700; }
   .brand-txt span { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
   .nav-links { display: flex; align-items: center; gap: 18px; justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; margin-left: auto; }
-  .nav-links a:not(.nav-cta) {
+  .nav-links a:not(.nav-cta):not(.nav-cabinet) {
     position: relative;
     padding: 8px 0;
     font-family: "Manrope", sans-serif;
@@ -137,8 +137,8 @@
     border-radius: 0;
     transition: color 0.15s;
   }
-  .nav-links a:not(.nav-cta):hover { color: var(--green); background: transparent; }
-  .nav-links a:not(.nav-cta)::after {
+  .nav-links a:not(.nav-cta):not(.nav-cabinet):hover { color: var(--green); background: transparent; }
+  .nav-links a:not(.nav-cta):not(.nav-cabinet)::after {
     content: "";
     position: absolute;
     left: 0; right: 0; bottom: 2px;
@@ -148,7 +148,24 @@
     transform-origin: left;
     transition: transform 0.25s ease;
   }
-  .nav-links a:not(.nav-cta):hover::after { transform: scaleX(1); }
+  .nav-links a:not(.nav-cta):not(.nav-cabinet):hover::after { transform: scaleX(1); }
+  .nav-cabinet {
+    padding: 9px 16px;
+    border: 1.5px solid var(--ink);
+    border-radius: 10px;
+    font-family: "Manrope", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    background: transparent;
+    text-decoration: none;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .nav-cabinet:hover {
+    background: var(--ink);
+    color: var(--yellow);
+    border-color: var(--ink);
+  }
   .nav-cta {
     background: var(--coral) !important;
     color: #fff !important;
@@ -2096,6 +2113,7 @@
       <a href="#how">Як працює</a>
       <a href="#features">Можливості</a>
       <a href="#methodology">Методика</a>
+      <a class="nav-cabinet" href="screen-4-cabinet.html">Кабінет</a>
       <a class="nav-cta" href="screen-4-cabinet.html#pay">Провести діагностику eNPS</a>
     </nav>
   </div>
