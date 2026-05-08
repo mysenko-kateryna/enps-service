@@ -2175,18 +2175,17 @@
     margin: 12px 0;
     box-shadow: 0 4px 20px rgba(15,21,18,0.04);
   }
-  /* Заголовки і числа на сторінці оплати у теплому темно-зеленому замість чорного */
-  #payView .page-header h1 { color: var(--teal-dark); }
+  /* Кольори на сторінці оплати: зелений тільки на акцентах, решта — темно-сіра */
+  #payView .page-header h1 { color: #1a2d29; }
   #payView .page-sub { color: var(--ink-soft); }
-  /* Кількість опитувань — яскравий смарагдовий, ціна — глибокий темно-зелений */
+  /* Кількість опитувань — яскравий смарагдовий акцент */
   #payView .pay-pc-qty { color: var(--green); }
   #payView .pay-pcard.popular .pay-pc-qty { color: var(--green); }
-  #payView .pay-pc-amount { color: var(--teal-dark); }
-  #payView .pay-pc-currency { color: var(--teal-dark); }
-  #payView .pay-included h3 { color: var(--teal-dark); }
+  /* Ціни — темно-сірий (мʼякший за чорний, але без зеленого) */
+  #payView .pay-pc-amount { color: #1a2d29; }
+  #payView .pay-pc-currency { color: #1a2d29; }
+  #payView .pay-included h3 { color: #1a2d29; }
   #payView .pay-included-list li { color: var(--ink-soft); }
-  #payView .pay-pc-cta-outline { color: var(--teal-dark); border-color: var(--teal); }
-  #payView .pay-pc-cta-outline:hover { color: var(--teal-dark); border-color: var(--teal-dark); background: rgba(19,123,114,0.06); }
 
   .toast { margin: 14px 0 0; font-size: 13px; color: var(--teal-dark); font-weight: 600; min-height: 18px; }
 
