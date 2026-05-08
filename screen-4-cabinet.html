@@ -2245,6 +2245,9 @@
       <form onsubmit="event.preventDefault(); doLogin();">
         <label>Email<input type="email" id="loginEmail" required></label>
         <label>Пароль<input type="password" id="loginPassword" required></label>
+        <div style="margin: -6px 0 14px; text-align: right;">
+          <a class="auth-forgot-link" onclick="doForgotPassword()">Забули пароль?</a>
+        </div>
         <div class="form-footer">
           <button class="btn-accent" type="submit">Увійти</button>
           <span class="auth-switch">Ще немає акаунту? <a onclick="showView('registerView')">Зареєструватися</a></span>
@@ -3284,9 +3287,14 @@ async function doLogin() {
     return;
   }
   const btn = event?.target?.querySelector?.('button[type="submit"]');
-  if (btn) { btn.disabled = true; btn.dataset.orig = btn.textContent; btn.textContent = "Входжу..."; }
+  if (btn) { btn.disabled = true; }
   try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
+    // Таймаут 8с — якщо Supabase висить, не залишаємо юзера зі спінером назавжди
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("login_timeout")), 8000));
+    const { data, error } = await Promise.race([
+      sb.auth.signInWithPassword({ email, password: pwd }),
+      timeout,
+    ]);
     if (error) {
       const msg = error.message === "Invalid login credentials"
         ? "Невірний email або пароль"
@@ -3296,14 +3304,20 @@ async function doLogin() {
       setAuthMessage("loginError", msg, "error");
       return;
     }
-    await loadUserProfile();
+    // Не чекаємо повний loadUserProfile (з усіма опитуваннями) — переходимо одразу,
+    // профіль завантажиться у фоні з initAuth-логіки
+    loadUserProfile().catch(e => console.warn("loadUserProfile bg:", e));
     setAuthMessage("loginError", "");
     if (state.pendingIntent === "pay") showView("payView");
     else showView("cabinetView");
   } catch (e) {
-    setAuthMessage("loginError", "Помилка: " + e.message, "error");
+    if (e.message === "login_timeout") {
+      setAuthMessage("loginError", "Сервер довго не відповідає. Спробуйте ще раз.", "error");
+    } else {
+      setAuthMessage("loginError", "Помилка: " + e.message, "error");
+    }
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.orig || "Увійти"; }
+    if (btn) { btn.disabled = false; }
   }
 }
 
