@@ -149,22 +149,40 @@
     transition: transform 0.25s ease;
   }
   .nav-links a:not(.nav-cta):not(.nav-cabinet):hover::after { transform: scaleX(1); }
+  /* Тонка смужка згори з кнопкою "Кабінет" */
+  .top-strip {
+    background: var(--ink);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(240, 206, 33, 0.15);
+  }
+  .top-strip-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
   .nav-cabinet {
-    padding: 9px 16px;
-    border: 1.5px solid var(--ink);
-    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
     font-family: "Manrope", sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--ink);
+    letter-spacing: 0.04em;
+    color: var(--yellow);
     background: transparent;
+    border: 1px solid rgba(240, 206, 33, 0.4);
+    border-radius: 999px;
     text-decoration: none;
     transition: background .15s, color .15s, border-color .15s;
   }
   .nav-cabinet:hover {
-    background: var(--ink);
-    color: var(--yellow);
-    border-color: var(--ink);
+    background: var(--yellow);
+    color: var(--ink);
+    border-color: var(--yellow);
   }
   .nav-cta {
     background: var(--coral) !important;
@@ -2100,6 +2118,11 @@
 </head>
 <body>
 
+<div class="top-strip">
+  <div class="top-strip-inner">
+    <a class="nav-cabinet" href="screen-4-cabinet.html">Кабінет →</a>
+  </div>
+</div>
 <header class="site-header">
   <div class="site-header-inner">
     <a class="brand" href="#top">
@@ -2113,7 +2136,6 @@
       <a href="#how">Як працює</a>
       <a href="#features">Можливості</a>
       <a href="#methodology">Методика</a>
-      <a class="nav-cabinet" href="screen-4-cabinet.html">Кабінет</a>
       <a class="nav-cta" href="screen-4-cabinet.html#pay">Провести діагностику eNPS</a>
     </nav>
   </div>
