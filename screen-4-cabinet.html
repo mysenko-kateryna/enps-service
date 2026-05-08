@@ -3110,6 +3110,22 @@ async function loadUserProfile() {
     saveState();
     if (typeof updateUserChip === "function") updateUserChip();
     if (typeof updateCreditsBadge === "function") updateCreditsBadge();
+    // Підбираємо осиротілі оплати з тим самим email (юзер платив до того як зареєструвався)
+    try {
+      const { data: claimRes } = await sb.rpc("claim_orphan_payments");
+      if (claimRes && claimRes.length && claimRes[0].total_credits > 0) {
+        const added = claimRes[0].total_credits;
+        const claimed = claimRes[0].payments_claimed;
+        state.credits = (state.credits || 0) + added;
+        saveState();
+        if (typeof updateCreditsBadge === "function") updateCreditsBadge();
+        setTimeout(() => {
+          alert(`Знайдено ${claimed} ${pluralUA(claimed, "вашу оплату", "ваших оплати", "ваших оплат")} з тим самим email.\nНараховано ${added} ${pluralUA(added, "опитування", "опитування", "опитувань")} на ваш баланс.`);
+        }, 600);
+      }
+    } catch (e) {
+      console.warn("Claim orphan payments failed:", e);
+    }
     // Завантажуємо опитування з Supabase (заміняє локальний state.surveys)
     try {
       const surveys = await api.listSurveys();
