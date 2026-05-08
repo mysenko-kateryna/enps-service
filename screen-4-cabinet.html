@@ -3280,21 +3280,23 @@ async function loadUserProfile() {
 }
 
 async function doLogin() {
+  console.log("doLogin start");
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const pwd = document.getElementById("loginPassword").value;
   if (!email || !pwd) {
     setAuthMessage("loginError", "Введіть email і пароль", "error");
     return;
   }
-  const btn = event?.target?.querySelector?.('button[type="submit"]');
-  if (btn) { btn.disabled = true; }
+  const btn = document.querySelector('#loginView button[type="submit"]');
+  if (btn) btn.disabled = true;
   try {
-    // Таймаут 8с — якщо Supabase висить, не залишаємо юзера зі спінером назавжди
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("login_timeout")), 8000));
-    const { data, error } = await Promise.race([
+    const result = await Promise.race([
       sb.auth.signInWithPassword({ email, password: pwd }),
       timeout,
     ]);
+    console.log("signIn result:", result);
+    const { data, error } = result || {};
     if (error) {
       const msg = error.message === "Invalid login credentials"
         ? "Невірний email або пароль"
@@ -3304,20 +3306,56 @@ async function doLogin() {
       setAuthMessage("loginError", msg, "error");
       return;
     }
-    // Не чекаємо повний loadUserProfile (з усіма опитуваннями) — переходимо одразу,
-    // профіль завантажиться у фоні з initAuth-логіки
+    // Базовий state одразу з auth-відповіді, щоб кабінет відкрився швидко
+    if (data?.user) {
+      state.loggedIn = true;
+      state.user = {
+        id: data.user.id,
+        email: data.user.email || email,
+        firstName: state.user?.firstName || "",
+        lastName: state.user?.lastName || "",
+        company: state.user?.company || "",
+      };
+      saveState();
+    }
+    // Повний профіль (імʼя, опитування, кредити) — у фоні
     loadUserProfile().catch(e => console.warn("loadUserProfile bg:", e));
     setAuthMessage("loginError", "");
-    if (state.pendingIntent === "pay") showView("payView");
+    const goToPay = state.pendingIntent === "pay";
+    state.pendingIntent = null;
+    if (goToPay) showView("payView");
     else showView("cabinetView");
   } catch (e) {
+    console.error("doLogin error:", e);
     if (e.message === "login_timeout") {
       setAuthMessage("loginError", "Сервер довго не відповідає. Спробуйте ще раз.", "error");
     } else {
-      setAuthMessage("loginError", "Помилка: " + e.message, "error");
+      setAuthMessage("loginError", "Помилка: " + (e.message || e), "error");
     }
   } finally {
-    if (btn) { btn.disabled = false; }
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function doForgotPassword() {
+  const emailField = document.getElementById("loginEmail");
+  const email = (emailField?.value || "").trim().toLowerCase();
+  if (!email) {
+    setAuthMessage("loginError", "Введіть email вгорі і натисніть 'Забули пароль?' ще раз", "error");
+    emailField?.focus();
+    return;
+  }
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://mysenko-kateryna.github.io/enps-service/screen-4-cabinet.html#recover",
+    });
+    if (error) {
+      setAuthMessage("loginError", "Не вдалося надіслати: " + error.message, "error");
+      return;
+    }
+    setAuthMessage("loginError", `Лист зі скиданням паролю надіслано на ${email}. Перевірте пошту.`, "info");
+  } catch (e) {
+    setAuthMessage("loginError", "Помилка: " + (e.message || e), "error");
   }
 }
 
