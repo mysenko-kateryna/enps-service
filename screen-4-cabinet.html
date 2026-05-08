@@ -2364,8 +2364,10 @@
         </ul>
       </div>
 
-      <p class="pay-email-note">
-        ⚠️ <strong>На сторінці оплати обовʼязково введіть свій email</strong> — той самий, що у кабінеті. Кредити нараховуються автоматично саме за email.
+      <p class="pay-email-note" id="payEmailNote">
+        ⚠️ <strong>На сторінці WayForPay обовʼязково введіть email вашого акаунта:</strong>
+        <span id="payEmailValue" style="display: inline-block; padding: 2px 8px; background: #fff; border-radius: 6px; font-family: monospace; font-weight: 700; margin-left: 4px;">завантаження...</span>
+        <br>Кредити нараховуються саме за email. Якщо введете інший — звʼяжіться з підтримкою.
       </p>
     </div>
   </section>
@@ -2887,6 +2889,10 @@ function showView(name) {
     }
   }
   if (name === "profileView") fillProfile();
+  if (name === "payView") {
+    const el = document.getElementById("payEmailValue");
+    if (el) el.textContent = (state.user && state.user.email) ? state.user.email : "увійдіть в акаунт";
+  }
   // Зберігаємо hash для створення/редагування щоб при F5 відновити
   if (name === "createView") {
     const newHash = editingDraftId ? `#edit=${encodeURIComponent(editingDraftId)}` : "#create";
@@ -2941,87 +2947,27 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: повноекранна сторінка WayForPay з підписаним payload ======
-// Отримуємо підписаний payload з Edge Function (з email/імʼям/orderReference юзера),
-// потім надсилаємо його через приховану POST-форму на secure.wayforpay.com/pay.
-// Юзер бачить ту саму повноекранну сторінку, але всі поля вже заповнені.
-
-function getStoredAccessToken() {
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
-      try {
-        const obj = JSON.parse(localStorage.getItem(key));
-        if (obj && obj.access_token) return obj.access_token;
-      } catch (_) {}
-    }
-  }
-  return null;
-}
-
-async function goPay(qty, event) {
+// ====== PAY: повноекранна сторінка WayForPay (статична кнопка) ======
+// Відкриваємо стандартну сторінку оплати WayForPay у новій вкладці.
+// Передаємо orderReference з user_id у URL — webhook знаходить юзера за ним.
+// Email юзер вводить вручну на WayForPay, але ми показуємо нагадування з його email
+// прямо на сторінці оплати у кабінеті, щоб не помилився.
+function goPay(qty, event) {
   if (event) event.preventDefault();
-  if (!state.user || !state.user.id) {
-    alert("Спочатку увійдіть в акаунт.");
-    return;
+  const buttons = {
+    1: "b67b09c2a9a10",
+    4: "b219b94681afd",
+    10: "bcf8be93eb60c",
+  };
+  const buttonId = buttons[qty];
+  if (!buttonId) return;
+  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
+  const params = new URLSearchParams();
+  if (state.user && state.user.id) {
+    params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
   }
-  let accessToken = getStoredAccessToken();
-  if (!accessToken) {
-    try {
-      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Session timeout")), 3000));
-      const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout]);
-      accessToken = session?.access_token || null;
-    } catch (_) {}
-  }
-  if (!accessToken) {
-    alert("Сесія втрачена. Будь ласка вийдіть і зайдіть знову.");
-    return;
-  }
-  try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ qty }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      alert("Не вдалося створити оплату: " + (err.error || `HTTP ${r.status}`));
-      return;
-    }
-    const payload = await r.json();
-
-    // Створюємо приховану форму і POST-имо її на /pay
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = "https://secure.wayforpay.com/pay";
-    form.target = "_blank";
-    form.acceptCharset = "UTF-8";
-    for (const [key, value] of Object.entries(payload)) {
-      if (Array.isArray(value)) {
-        value.forEach(v => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = `${key}[]`;
-          input.value = String(v);
-          form.appendChild(input);
-        });
-      } else {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
-      }
-    }
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(() => form.remove(), 200);
-  } catch (e) {
-    console.error("goPay:", e);
-    alert("Помилка: " + (e.message || e));
-  }
+  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+  window.open(fullUrl, "_blank", "noopener");
 }
 
 // ====== AUTH ======
