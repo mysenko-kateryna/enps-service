@@ -2164,13 +2164,19 @@
 
   /* Прибираємо topbar-кнопку Оплатити коли ми вже на сторінці оплати */
   body:has(#payView.active) .btn-buy-more { display: none; }
-  /* Світліший і теплий фон сторінки оплати */
+  /* Світліша сторінка оплати — переписуємо темну тему body */
   body:has(#payView.active) {
-    background:
-      radial-gradient(800px 400px at 50% 0%, rgba(240,206,33,.10), transparent 70%),
-      radial-gradient(600px 300px at 100% 100%, rgba(19,123,114,.06), transparent 70%),
-      #fafaf5 !important;
+    background: #fffdf5 !important;
   }
+  #payView {
+    background: linear-gradient(180deg, #fffefa 0%, #fffbeb 100%);
+    border-radius: 28px;
+    padding: 20px 28px 36px;
+    margin: 12px 0;
+    box-shadow: 0 4px 20px rgba(15,21,18,0.04);
+  }
+  #payView .page-header h1 { color: var(--ink); }
+  #payView .page-sub { color: var(--ink-soft); }
 
   .toast { margin: 14px 0 0; font-size: 13px; color: var(--teal-dark); font-weight: 600; min-height: 18px; }
 
@@ -2368,7 +2374,7 @@
           <li>Шаблон опитування і кастомізація</li>
           <li>Анонімний лінк і QR-код для команди</li>
           <li>Дашборд у реальному часі: eNPS, participation, сегменти</li>
-          <li>Експорт звіту і відповідей у 7 форматах (PDF, Word, PowerPoint, Excel, Markdown, PNG, Google Slides)</li>
+          <li>Експорт звіту і відповідей у Figma, Canva, PDF, Google Sheets та інші формати</li>
           <li>Кредити не згоряють і списуються тільки при запуску</li>
         </ul>
       </div>
