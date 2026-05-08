@@ -2120,17 +2120,19 @@
   .pay-pc-cta-dark:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
 
   .pay-included {
-    background: #fff;
-    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #fff 0%, #fffdf2 100%);
+    border: 1px solid var(--line-soft);
     border-radius: 20px;
-    padding: 26px 28px;
+    padding: 28px 32px;
     margin: 8px 0 18px;
+    box-shadow: 0 2px 12px rgba(15,21,18,0.04);
   }
   .pay-included h3 {
     font-family: "Unbounded", sans-serif;
-    font-size: 17px; font-weight: 800;
-    margin: 0 0 16px;
+    font-size: 18px; font-weight: 800;
+    margin: 0 0 18px;
     letter-spacing: -0.01em;
+    color: var(--ink);
   }
   .pay-included-list {
     list-style: none;
@@ -2162,6 +2164,13 @@
 
   /* Прибираємо topbar-кнопку Оплатити коли ми вже на сторінці оплати */
   body:has(#payView.active) .btn-buy-more { display: none; }
+  /* Світліший і теплий фон сторінки оплати */
+  body:has(#payView.active) {
+    background:
+      radial-gradient(800px 400px at 50% 0%, rgba(240,206,33,.10), transparent 70%),
+      radial-gradient(600px 300px at 100% 100%, rgba(19,123,114,.06), transparent 70%),
+      #fafaf5 !important;
+  }
 
   .toast { margin: 14px 0 0; font-size: 13px; color: var(--teal-dark); font-weight: 600; min-height: 18px; }
 
@@ -2353,13 +2362,13 @@
       </div>
 
       <div class="pay-included">
-        <h3>В усі пакети входить</h3>
+        <h3>В усі пакети входить:</h3>
         <ul class="pay-included-list">
           <li>Будь-який розмір команди, без обмежень</li>
-          <li>Конструктор анкети і необмежено відкритих питань</li>
+          <li>Шаблон опитування і кастомізація</li>
           <li>Анонімний лінк і QR-код для команди</li>
           <li>Дашборд у реальному часі: eNPS, participation, сегменти</li>
-          <li>Експорт звіту і відповідей у різні формати</li>
+          <li>Експорт звіту і відповідей у 7 форматах (PDF, Word, PowerPoint, Excel, Markdown, PNG, Google Slides)</li>
           <li>Кредити не згоряють і списуються тільки при запуску</li>
         </ul>
       </div>
@@ -2367,7 +2376,7 @@
       <p class="pay-email-note" id="payEmailNote">
         ⚠️ <strong>На сторінці WayForPay обовʼязково введіть email вашого акаунта:</strong>
         <span id="payEmailValue" style="display: inline-block; padding: 2px 8px; background: #fff; border-radius: 6px; font-family: monospace; font-weight: 700; margin-left: 4px;">завантаження...</span>
-        <br>Кредити нараховуються саме за email. Якщо введете інший — звʼяжіться з підтримкою.
+        <br>Кредити нараховуються саме на email.
       </p>
     </div>
   </section>
