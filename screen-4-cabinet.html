@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="qr.js" defer></script>
-<!-- WayForPay JS-widget для запуску оплати через iframe з підписаним payload -->
-<script src="https://secure.wayforpay.com/server/pay-widget.js?ref=button" async></script>
 <!-- Важкі бібліотеки експорту: завантажуються async, не блокують перший рендер -->
 <script src="html2canvas.min.js" async></script>
 <script src="jspdf.umd.min.js" async></script>
@@ -2943,89 +2941,41 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: WayForPay через підписаний payload + JS-widget ======
-// Викликає Edge Function "wayforpay-create-intent" яка генерує підписаний payload
-// з email, імʼям юзера і orderReference = user_<uuid>_<ts>. Потім відкриває
-// офіційний WayForPay iframe widget з ВЖЕ заповненими полями (юзер не може їх змінити).
-
-// Прямо читає JWT-токен з localStorage де його зберігає supabase-js.
-// Швидко (мс), без мережевих запитів. Корисно коли sb.auth.getSession() висить.
-function getStoredAccessToken() {
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
-      try {
-        const obj = JSON.parse(localStorage.getItem(key));
-        if (obj && obj.access_token) return obj.access_token;
-      } catch (_) {}
-    }
-  }
-  return null;
-}
-
-async function goPay(qty, event) {
+// ====== PAY: відкриваємо повноекранну сторінку WayForPay ======
+// Передаємо email/імʼя/orderReference як URL-параметри. Це best-effort — деякі параметри
+// WayForPay-кнопка може ігнорувати, але якщо юзер введе той же email — webhook знайде
+// його за email АБО за user_id з orderReference. Як остання страхувалка — auto-claim
+// orphan payments на наступному логіні.
+function goPay(qty, event) {
   if (event) event.preventDefault();
-  if (!state.user || !state.user.id) {
-    alert("Спочатку увійдіть в акаунт.");
-    return;
-  }
-  if (typeof Wayforpay === "undefined") {
-    alert("Платіжний віджет ще не завантажився. Зачекайте 1-2 секунди і спробуйте знову.");
-    return;
-  }
-  try {
-    // Беремо токен з localStorage (швидко). Як фолбек — sb.auth.getSession з таймаутом.
-    let accessToken = getStoredAccessToken();
-    if (!accessToken) {
-      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Session timeout")), 3000));
-      try {
-        const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout]);
-        accessToken = session?.access_token || null;
-      } catch (e) {
-        console.warn("getSession timeout, using stored token if any");
-      }
+  const buttons = {
+    1: "b67b09c2a9a10",
+    4: "b219b94681afd",
+    10: "bcf8be93eb60c",
+  };
+  const buttonId = buttons[qty];
+  if (!buttonId) return;
+  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
+  const params = new URLSearchParams();
+  if (state.user) {
+    if (state.user.email) {
+      params.append("clientEmail", state.user.email);
+      params.append("email", state.user.email);
     }
-    if (!accessToken) {
-      alert("Сесія втрачена. Будь ласка вийдіть і зайдіть знову.");
-      return;
+    if (state.user.firstName) {
+      params.append("clientFirstName", state.user.firstName);
+      params.append("firstName", state.user.firstName);
     }
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ qty }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      alert("Не вдалося створити оплату: " + (err.error || `HTTP ${r.status}`));
-      return;
+    if (state.user.lastName) {
+      params.append("clientLastName", state.user.lastName);
+      params.append("lastName", state.user.lastName);
     }
-    const payload = await r.json();
-    const wfp = new Wayforpay();
-    wfp.run(
-      payload,
-      function(response) {
-        // Approved — webhook вже обробив, показуємо повідомлення
-        console.log("WayForPay approved:", response);
-        sessionStorage.setItem("paymentReturn", "1");
-        // Перезавантажимо профіль для свіжого балансу
-        loadUserProfile().then(() => {
-          showView("cabinetView");
-        });
-      },
-      function(response) {
-        console.warn("WayForPay declined:", response);
-        alert("Оплата відхилена. Спробуйте іншу картку або звʼяжіться з банком.");
-      },
-      function(response) {
-        console.log("WayForPay pending:", response);
-      }
-    );
-  } catch (e) {
-    console.error("goPay:", e);
-    alert("Помилка: " + (e.message || e));
+    if (state.user.id) {
+      params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
+    }
   }
+  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+  window.open(fullUrl, "_blank", "noopener");
 }
 
 // ====== AUTH ======
