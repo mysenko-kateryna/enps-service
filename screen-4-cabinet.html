@@ -3121,9 +3121,10 @@ function renderInitialView(hash) {
   if (!state.loggedIn || !state.user) {
     document.getElementById("userArea").classList.add("hidden");
     if (wantPay) {
-      showView("registerView");
-      const hint = document.getElementById("registerHint");
-      if (hint) hint.textContent = "Створіть акаунт, щоб завершити оплату і отримати доступ до свого опитування.";
+      // Не залогінений → показуємо саме сторінку оплати (з підказкою про email).
+      // Юзер може оплатити без реєстрації — кредит автоматично зачиститься
+      // коли він пізніше зареєструється з тим самим email (claim_orphan_payments).
+      showView("payView");
     } else {
       showView("loginView");
     }
