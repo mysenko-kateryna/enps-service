@@ -2947,28 +2947,52 @@ function showTab(id) {
 // Викликає Edge Function "wayforpay-create-intent" яка генерує підписаний payload
 // з email, імʼям юзера і orderReference = user_<uuid>_<ts>. Потім відкриває
 // офіційний WayForPay iframe widget з ВЖЕ заповненими полями (юзер не може їх змінити).
+
+// Прямо читає JWT-токен з localStorage де його зберігає supabase-js.
+// Швидко (мс), без мережевих запитів. Корисно коли sb.auth.getSession() висить.
+function getStoredAccessToken() {
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+      try {
+        const obj = JSON.parse(localStorage.getItem(key));
+        if (obj && obj.access_token) return obj.access_token;
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
 async function goPay(qty, event) {
   if (event) event.preventDefault();
   if (!state.user || !state.user.id) {
     alert("Спочатку увійдіть в акаунт.");
     return;
   }
-  // Перевіряємо що widget завантажився
   if (typeof Wayforpay === "undefined") {
     alert("Платіжний віджет ще не завантажився. Зачекайте 1-2 секунди і спробуйте знову.");
     return;
   }
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      alert("Сесія втрачена. Перезайдіть і спробуйте знову.");
+    // Беремо токен з localStorage (швидко). Як фолбек — sb.auth.getSession з таймаутом.
+    let accessToken = getStoredAccessToken();
+    if (!accessToken) {
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Session timeout")), 3000));
+      try {
+        const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout]);
+        accessToken = session?.access_token || null;
+      } catch (e) {
+        console.warn("getSession timeout, using stored token if any");
+      }
+    }
+    if (!accessToken) {
+      alert("Сесія втрачена. Будь ласка вийдіть і зайдіть знову.");
       return;
     }
     const r = await fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
+        "Authorization": `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ qty }),
     });
