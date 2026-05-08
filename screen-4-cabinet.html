@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="qr.js" defer></script>
+<!-- WayForPay JS-widget для запуску оплати через iframe з підписаним payload -->
+<script src="https://secure.wayforpay.com/server/pay-widget.js?ref=button" async></script>
 <!-- Важкі бібліотеки експорту: завантажуються async, не блокують перший рендер -->
 <script src="html2canvas.min.js" async></script>
 <script src="jspdf.umd.min.js" async></script>
@@ -2913,31 +2915,65 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: WayForPay з заповненим email ======
-// Якщо юзер залогінений — заповнюємо email, імʼя і orderReference з user_id у URL.
-// Це гарантує що webhook знайде юзера навіть якщо він поміняє email на сторінці WayForPay.
-function goPay(qty, event) {
+// ====== PAY: WayForPay через підписаний payload + JS-widget ======
+// Викликає Edge Function "wayforpay-create-intent" яка генерує підписаний payload
+// з email, імʼям юзера і orderReference = user_<uuid>_<ts>. Потім відкриває
+// офіційний WayForPay iframe widget з ВЖЕ заповненими полями (юзер не може їх змінити).
+async function goPay(qty, event) {
   if (event) event.preventDefault();
-  const buttons = {
-    1: "b67b09c2a9a10",
-    4: "b219b94681afd",
-    10: "bcf8be93eb60c"
-  };
-  const buttonId = buttons[qty];
-  if (!buttonId) return;
-  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
-  const params = new URLSearchParams();
-  if (state.user) {
-    if (state.user.email) params.append("clientEmail", state.user.email);
-    if (state.user.firstName) params.append("clientFirstName", state.user.firstName);
-    if (state.user.lastName) params.append("clientLastName", state.user.lastName);
-    if (state.user.id) {
-      // orderReference формат "user_<uuid>_<timestamp>" — webhook вміє парсити user_id звідси
-      params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
-    }
+  if (!state.user || !state.user.id) {
+    alert("Спочатку увійдіть в акаунт.");
+    return;
   }
-  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-  window.open(fullUrl, "_blank", "noopener");
+  // Перевіряємо що widget завантажився
+  if (typeof Wayforpay === "undefined") {
+    alert("Платіжний віджет ще не завантажився. Зачекайте 1-2 секунди і спробуйте знову.");
+    return;
+  }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      alert("Сесія втрачена. Перезайдіть і спробуйте знову.");
+      return;
+    }
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ qty }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert("Не вдалося створити оплату: " + (err.error || `HTTP ${r.status}`));
+      return;
+    }
+    const payload = await r.json();
+    const wfp = new Wayforpay();
+    wfp.run(
+      payload,
+      function(response) {
+        // Approved — webhook вже обробив, показуємо повідомлення
+        console.log("WayForPay approved:", response);
+        sessionStorage.setItem("paymentReturn", "1");
+        // Перезавантажимо профіль для свіжого балансу
+        loadUserProfile().then(() => {
+          showView("cabinetView");
+        });
+      },
+      function(response) {
+        console.warn("WayForPay declined:", response);
+        alert("Оплата відхилена. Спробуйте іншу картку або звʼяжіться з банком.");
+      },
+      function(response) {
+        console.log("WayForPay pending:", response);
+      }
+    );
+  } catch (e) {
+    console.error("goPay:", e);
+    alert("Помилка: " + (e.message || e));
+  }
 }
 
 // ====== AUTH ======
