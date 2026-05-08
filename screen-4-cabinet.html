@@ -3358,11 +3358,25 @@ async function doRegister() {
 
 async function doLogout() {
   if (!confirm("Вийти з акаунту?")) return;
-  try { await sb.auth.signOut(); } catch (e) { console.warn(e); }
+  // Викликаємо signOut з таймаутом, але навіть якщо зависне — локально вийдемо
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("signOut timeout")), 3000));
+    await Promise.race([sb.auth.signOut(), timeout]);
+  } catch (e) {
+    console.warn("signOut:", e);
+  }
+  // Очищуємо Supabase auth-токени з localStorage напряму (на випадок якщо signOut завис)
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (_) {}
   state.user = null;
   state.loggedIn = false;
   saveState();
-  document.getElementById("userArea").style.display = "none";
+  document.getElementById("userArea").classList.add("hidden");
   showView("loginView");
 }
 
