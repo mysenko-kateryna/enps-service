@@ -2972,11 +2972,9 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: повноекранна сторінка WayForPay (статична кнопка) ======
-// Відкриваємо стандартну сторінку оплати WayForPay у новій вкладці.
-// Передаємо orderReference з user_id у URL — webhook знаходить юзера за ним.
-// Email юзер вводить вручну на WayForPay, але ми показуємо нагадування з його email
-// прямо на сторінці оплати у кабінеті, щоб не помилився.
+// ====== PAY: WayForPay button з POST-формою (для пре-філлу email) ======
+// Відкриваємо повноекранну сторінку WayForPay (зберігаємо eNPS картинку),
+// але передаємо email/імʼя через POST-форму (працює надійніше за URL-параметри).
 function goPay(qty, event) {
   if (event) event.preventDefault();
   const buttons = {
@@ -2986,13 +2984,38 @@ function goPay(qty, event) {
   };
   const buttonId = buttons[qty];
   if (!buttonId) return;
-  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
-  const params = new URLSearchParams();
-  if (state.user && state.user.id) {
-    params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = `https://secure.wayforpay.com/button/${buttonId}`;
+  form.target = "_blank";
+  form.acceptCharset = "UTF-8";
+
+  const addField = (name, value) => {
+    if (value === undefined || value === null || value === "") return;
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = String(value);
+    form.appendChild(input);
+  };
+
+  if (state.user) {
+    // Пробуємо різні імена параметрів, WayForPay може приймати щось одне з них
+    addField("clientEmail", state.user.email);
+    addField("email", state.user.email);
+    addField("clientFirstName", state.user.firstName);
+    addField("firstName", state.user.firstName);
+    addField("clientLastName", state.user.lastName);
+    addField("lastName", state.user.lastName);
+    if (state.user.id) {
+      addField("orderReference", `user_${state.user.id}_${Date.now()}`);
+    }
   }
-  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-  window.open(fullUrl, "_blank", "noopener");
+
+  document.body.appendChild(form);
+  form.submit();
+  setTimeout(() => form.remove(), 200);
 }
 
 // ====== AUTH ======
