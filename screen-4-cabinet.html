@@ -279,6 +279,22 @@
     background: #ffd735 !important;
     animation-play-state: paused;
   }
+  .btn-back-site {
+    display: inline-flex; align-items: center;
+    padding: 8px 14px;
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.85);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .btn-back-site:hover {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-color: rgba(255,255,255,.22);
+  }
   @keyframes buy-more-pulse {
     0%, 100% { box-shadow: 0 4px 14px rgba(240, 206, 33, 0.4), 0 0 0 0 rgba(240, 206, 33, 0.5); }
     50% { box-shadow: 0 4px 14px rgba(240, 206, 33, 0.4), 0 0 0 10px rgba(240, 206, 33, 0); }
@@ -2148,15 +2164,16 @@
 <body>
 
 <header class="topbar" id="mainTopbar">
-  <div class="brand" onclick="showView('cabinetView')">
+  <a class="brand" href="landing.html" title="На головну сторінку сайту" style="text-decoration:none;color:inherit;cursor:pointer;">
     <div class="logo"><img src="hr-logo-yellow.svg" alt="HR. Час діяти!"></div>
     <div>
       <strong>HR. Час діяТИ!</strong>
       <span>eNPS сервіс · © Катерина Мисенко</span>
     </div>
-  </div>
+  </a>
   <div class="user-area">
     <div id="userArea" class="user-area-inner hidden">
+      <a class="btn-back-site" href="landing.html" title="Повернутись на сайт">← На сайт</a>
       <button class="btn-buy-more" type="button" onclick="showView('payView')">Оплатити діагностику eNPS</button>
       <div class="user-chip" onclick="showView('profileView')" id="userChip" title="Перейти у профіль, там же баланс">
         <div class="user-avatar" id="userAvatar">КМ</div>
