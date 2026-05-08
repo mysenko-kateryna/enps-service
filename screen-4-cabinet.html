@@ -2289,7 +2289,7 @@
             <span class="pay-pc-currency">грн.</span>
           </div>
           <span class="pay-pc-per">790 грн. за опитування</span>
-          <a class="pay-pc-cta pay-pc-cta-outline" href="https://secure.wayforpay.com/button/b67b09c2a9a10" target="_blank" rel="noopener">Оплатити 790 грн.</a>
+          <a class="pay-pc-cta pay-pc-cta-outline" href="#" onclick="goPay(1, event)">Оплатити 790 грн.</a>
         </div>
 
         <!-- Пакет 4 -->
@@ -2305,7 +2305,7 @@
             <span class="pay-pc-discount">-10%</span>
           </div>
           <span class="pay-pc-per">711 грн. за опитування · економія 316 грн.</span>
-          <a class="pay-pc-cta pay-pc-cta-dark" href="https://secure.wayforpay.com/button/b219b94681afd" target="_blank" rel="noopener">Оплатити 2 844 грн.</a>
+          <a class="pay-pc-cta pay-pc-cta-dark" href="#" onclick="goPay(4, event)">Оплатити 2 844 грн.</a>
         </div>
 
         <!-- Пакет 10 -->
@@ -2320,7 +2320,7 @@
             <span class="pay-pc-discount">-20%</span>
           </div>
           <span class="pay-pc-per">632 грн. за опитування · економія 1 580 грн.</span>
-          <a class="pay-pc-cta pay-pc-cta-outline" href="https://secure.wayforpay.com/button/bcf8be93eb60c" target="_blank" rel="noopener">Оплатити 6 320 грн.</a>
+          <a class="pay-pc-cta pay-pc-cta-outline" href="#" onclick="goPay(10, event)">Оплатити 6 320 грн.</a>
         </div>
       </div>
 
@@ -2911,6 +2911,33 @@ function showTab(id) {
     const newHash = `#survey=${encodeURIComponent(currentSurveyId)}&tab=${id}`;
     if (window.location.hash !== newHash) history.replaceState(null, "", window.location.pathname + newHash);
   }
+}
+
+// ====== PAY: WayForPay з заповненим email ======
+// Якщо юзер залогінений — заповнюємо email, імʼя і orderReference з user_id у URL.
+// Це гарантує що webhook знайде юзера навіть якщо він поміняє email на сторінці WayForPay.
+function goPay(qty, event) {
+  if (event) event.preventDefault();
+  const buttons = {
+    1: "b67b09c2a9a10",
+    4: "b219b94681afd",
+    10: "bcf8be93eb60c"
+  };
+  const buttonId = buttons[qty];
+  if (!buttonId) return;
+  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
+  const params = new URLSearchParams();
+  if (state.user) {
+    if (state.user.email) params.append("clientEmail", state.user.email);
+    if (state.user.firstName) params.append("clientFirstName", state.user.firstName);
+    if (state.user.lastName) params.append("clientLastName", state.user.lastName);
+    if (state.user.id) {
+      // orderReference формат "user_<uuid>_<timestamp>" — webhook вміє парсити user_id звідси
+      params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
+    }
+  }
+  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+  window.open(fullUrl, "_blank", "noopener");
 }
 
 // ====== AUTH ======

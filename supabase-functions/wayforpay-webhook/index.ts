@@ -134,9 +134,25 @@ Deno.serve(async (req: Request) => {
     console.error("listUsers:", listErr);
     return new Response("DB error", { status: 500 });
   }
-  const user = users.find((u: any) => (u.email || "").toLowerCase() === email);
+  let user = users.find((u: any) => (u.email || "").toLowerCase() === email);
+
+  // Fallback: парсимо user_id з orderReference (формат "user_<uuid>_<timestamp>")
+  // Це дозволяє знайти юзера навіть якщо він поміняв email на WayForPay
   if (!user) {
-    console.warn("User not found:", email);
+    const orderRef = payload.orderReference || "";
+    const match = orderRef.match(/^user_([0-9a-f-]{30,40})_/i);
+    if (match) {
+      const uid = match[1];
+      const candidate = users.find((u: any) => u.id === uid);
+      if (candidate) {
+        user = candidate;
+        console.log(`User found via orderReference fallback: ${uid}`);
+      }
+    }
+  }
+
+  if (!user) {
+    console.warn("User not found by email or orderReference:", email, payload.orderReference);
     // Все одно записуємо платіж щоб не пропав
     await supa.from("payments").insert({
       user_id: null,
