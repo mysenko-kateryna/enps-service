@@ -3363,7 +3363,7 @@ async function doForgotPassword() {
       setAuthMessage("loginError", "Не вдалося надіслати: " + error.message, "error");
       return;
     }
-    setAuthMessage("loginError", `Лист зі скиданням паролю надіслано на ${email}. Перевірте пошту.`, "info");
+    setAuthMessage("loginError", `Якщо ${email} зареєстрований — лист зі скиданням паролю прийде протягом хвилини. Перевірте папку "Спам". Якщо ви ще не реєструвалися — натисніть "Зареєструватися".`, "info");
   } catch (e) {
     setAuthMessage("loginError", "Помилка: " + (e.message || e), "error");
   }
