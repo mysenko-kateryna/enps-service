@@ -1982,6 +1982,28 @@
   .auth-wrap label .req { color: var(--rose); font-weight: 700; margin-left: 2px; }
   .auth-wrap label .opt { color: var(--muted); font-weight: 500; font-size: 11px; margin-left: 6px; text-transform: lowercase; }
   .auth-wrap label .field-hint { display: block; margin-top: 4px; font-size: 11px; font-weight: 500; color: var(--muted); }
+  .reg-agree-label {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 6px 0 14px;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: var(--ink-soft) !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    line-height: 1.5;
+  }
+  .reg-agree-label input[type="checkbox"] {
+    width: 18px; height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .reg-agree-label a { color: var(--teal-dark); text-decoration: underline; font-weight: 600; }
+  .reg-agree-label a:hover { color: var(--teal); }
   .hidden { display: none !important; }
 
   .credit-banner {
@@ -2279,6 +2301,10 @@
         <label>Пароль <span class="req">*</span><input type="password" id="regPassword" required minlength="6"><small class="field-hint">мінімум 6 символів</small></label>
         <label>Повторіть пароль <span class="req">*</span><input type="password" id="regPasswordConfirm" required minlength="6"></label>
         <label>Назва компанії <span class="opt">необовʼязково</span><input type="text" id="regCompany"></label>
+        <label class="reg-agree-label">
+          <input type="checkbox" id="regAgree" required>
+          <span>Я приймаю <a href="terms.html" target="_blank">Умови використання</a> і <a href="privacy.html" target="_blank">Політику конфіденційності</a> та надаю згоду на обробку моїх персональних даних.</span>
+        </label>
         <div class="form-footer">
           <button class="btn-accent" type="submit">Створити акаунт</button>
           <span class="auth-switch">Вже є акаунт? <a onclick="showView('loginView')">Увійти</a></span>
@@ -3385,6 +3411,11 @@ async function doRegister() {
   }
   if (password !== passwordConfirm) {
     setAuthMessage("registerError", "Паролі не співпадають. Перевірте і введіть однаковий у обидва поля.", "error");
+    return;
+  }
+  const agreed = document.getElementById("regAgree")?.checked;
+  if (!agreed) {
+    setAuthMessage("registerError", "Прийміть Умови використання і Політику конфіденційності щоб продовжити.", "error");
     return;
   }
   const btn = event?.target?.querySelector?.('button[type="submit"]');
