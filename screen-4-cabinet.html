@@ -2941,41 +2941,87 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: відкриваємо повноекранну сторінку WayForPay ======
-// Передаємо email/імʼя/orderReference як URL-параметри. Це best-effort — деякі параметри
-// WayForPay-кнопка може ігнорувати, але якщо юзер введе той же email — webhook знайде
-// його за email АБО за user_id з orderReference. Як остання страхувалка — auto-claim
-// orphan payments на наступному логіні.
-function goPay(qty, event) {
-  if (event) event.preventDefault();
-  const buttons = {
-    1: "b67b09c2a9a10",
-    4: "b219b94681afd",
-    10: "bcf8be93eb60c",
-  };
-  const buttonId = buttons[qty];
-  if (!buttonId) return;
-  const baseUrl = `https://secure.wayforpay.com/button/${buttonId}`;
-  const params = new URLSearchParams();
-  if (state.user) {
-    if (state.user.email) {
-      params.append("clientEmail", state.user.email);
-      params.append("email", state.user.email);
-    }
-    if (state.user.firstName) {
-      params.append("clientFirstName", state.user.firstName);
-      params.append("firstName", state.user.firstName);
-    }
-    if (state.user.lastName) {
-      params.append("clientLastName", state.user.lastName);
-      params.append("lastName", state.user.lastName);
-    }
-    if (state.user.id) {
-      params.append("orderReference", `user_${state.user.id}_${Date.now()}`);
+// ====== PAY: повноекранна сторінка WayForPay з підписаним payload ======
+// Отримуємо підписаний payload з Edge Function (з email/імʼям/orderReference юзера),
+// потім надсилаємо його через приховану POST-форму на secure.wayforpay.com/pay.
+// Юзер бачить ту саму повноекранну сторінку, але всі поля вже заповнені.
+
+function getStoredAccessToken() {
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+      try {
+        const obj = JSON.parse(localStorage.getItem(key));
+        if (obj && obj.access_token) return obj.access_token;
+      } catch (_) {}
     }
   }
-  const fullUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-  window.open(fullUrl, "_blank", "noopener");
+  return null;
+}
+
+async function goPay(qty, event) {
+  if (event) event.preventDefault();
+  if (!state.user || !state.user.id) {
+    alert("Спочатку увійдіть в акаунт.");
+    return;
+  }
+  let accessToken = getStoredAccessToken();
+  if (!accessToken) {
+    try {
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Session timeout")), 3000));
+      const { data: { session } } = await Promise.race([sb.auth.getSession(), timeout]);
+      accessToken = session?.access_token || null;
+    } catch (_) {}
+  }
+  if (!accessToken) {
+    alert("Сесія втрачена. Будь ласка вийдіть і зайдіть знову.");
+    return;
+  }
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ qty }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert("Не вдалося створити оплату: " + (err.error || `HTTP ${r.status}`));
+      return;
+    }
+    const payload = await r.json();
+
+    // Створюємо приховану форму і POST-имо її на /pay
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://secure.wayforpay.com/pay";
+    form.target = "_blank";
+    form.acceptCharset = "UTF-8";
+    for (const [key, value] of Object.entries(payload)) {
+      if (Array.isArray(value)) {
+        value.forEach(v => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = `${key}[]`;
+          input.value = String(v);
+          form.appendChild(input);
+        });
+      } else {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+      }
+    }
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => form.remove(), 200);
+  } catch (e) {
+    console.error("goPay:", e);
+    alert("Помилка: " + (e.message || e));
+  }
 }
 
 // ====== AUTH ======
