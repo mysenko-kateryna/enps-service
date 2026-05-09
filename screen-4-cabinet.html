@@ -4147,25 +4147,60 @@ function collectFormData() {
   };
 }
 
-function saveNewSurvey() {
+async function saveNewSurvey() {
   const data = collectFormData();
   if (!data.title) { alert("Введіть назву опитування"); return; }
   const now = new Date().toISOString().slice(0, 10);
+  const isLoggedIn = !!state.user?.id;
   // Зберігаємо як чернетку – кредит не списується
   if (editingDraftId) {
     const s = state.surveys.find(x => x.id === editingDraftId);
-    Object.assign(s, data);
-    if (s.status !== "active") s.status = "draft";
-    saveState();
-    formDirty = false; // форма збережена
-    openSurvey(s.id, "collectTab");
+    if (!s) { alert("Помилка: опитування не знайдено"); return; }
+    try {
+      if (isLoggedIn && isValidUUID(editingDraftId)) {
+        const newStatus = s.status && s.status !== "draft" ? s.status : "draft";
+        const updated = await api.updateSurvey(editingDraftId, { ...data, status: newStatus });
+        updated.responses = s.responses || [];
+        Object.assign(s, updated);
+      } else {
+        // Demo або стара чернетка з невалідним id - тільки локально
+        Object.assign(s, data);
+        if (s.status !== "active") s.status = "draft";
+      }
+      saveState();
+      formDirty = false;
+      openSurvey(s.id, "collectTab");
+    } catch (e) {
+      console.error("saveNewSurvey update:", e);
+      alert("Не вдалося зберегти: " + (e.message || e));
+    }
     return;
   }
-  const id = slugify(data.title) + "-" + Date.now().toString(36);
-  state.surveys.push({ id, ...data, status: "draft", createdAt: now, closedAt: null, responses: [] });
-  saveState();
-  formDirty = false; // форма збережена
-  openSurvey(id, "collectTab");
+  // Створення нового опитування
+  try {
+    if (isLoggedIn) {
+      // Запит до Supabase - id генерує БД
+      console.log("[save] creating survey via Supabase...");
+      const created = await api.createSurvey({ ...data, status: "draft" });
+      created.responses = [];
+      state.surveys.unshift(created);
+      saveState();
+      formDirty = false;
+      openSurvey(created.id, "collectTab");
+    } else {
+      // Demo mode: UUID локально (а не slugify, щоб не плутати клієнт і БД)
+      const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : slugify(data.title) + "-" + Date.now().toString(36);
+      state.surveys.push({ id, ...data, status: "draft", createdAt: now, closedAt: null, responses: [] });
+      saveState();
+      formDirty = false;
+      openSurvey(id, "collectTab");
+    }
+  } catch (e) {
+    console.error("saveNewSurvey create:", e);
+    alert("Не вдалося створити опитування: " + (e.message || e));
+  }
 }
 
 // Генерація посилання – саме тут списується кредит
@@ -4235,7 +4270,9 @@ async function saveDraftOnly() {
       return;
     }
     if (isDemo) {
-      const id = slugify(data.title) + "-" + Date.now().toString(36);
+      const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : slugify(data.title) + "-" + Date.now().toString(36);
       const now = new Date().toISOString().slice(0, 10);
       state.surveys.push({ id, ...data, status: "draft", createdAt: now, closedAt: null, responses: [] });
     } else {
