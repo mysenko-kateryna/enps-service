@@ -110,33 +110,69 @@
     };
   }
 
+  // Helper: race promise з timeout щоб запити не висіли вічно
+  // (Supabase JS може зависати при невалідних параметрах типу кирилиці у uuid)
+  function withTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error((label || "Запит") + " timeout (>" + (ms/1000) + "с)")), ms))
+    ]);
+  }
+  // Перевірка що рядок схожий на UUID (38 символів з дефісами)
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function isValidUUID(s) { return typeof s === "string" && UUID_RE.test(s); }
+
   window.api = {
     // SURVEYS
     async listSurveys() {
-      const { data, error } = await sb.from("surveys").select("*").order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        sb.from("surveys").select("*").order("created_at", { ascending: false }),
+        10000, "listSurveys"
+      );
       if (error) { console.error("listSurveys:", error); return []; }
       return (data || []).map(dbToSurvey);
     },
     async getSurvey(id) {
-      const { data, error } = await sb.from("surveys").select("*").eq("id", id).maybeSingle();
+      if (!isValidUUID(id)) { console.warn("getSurvey: invalid uuid", id); return null; }
+      const { data, error } = await withTimeout(
+        sb.from("surveys").select("*").eq("id", id).maybeSingle(),
+        10000, "getSurvey"
+      );
       if (error) { console.error("getSurvey:", error); return null; }
       return data ? dbToSurvey(data) : null;
     },
     async createSurvey(s) {
-      const { data: { user } } = await sb.auth.getUser();
+      const { data: { user } } = await withTimeout(sb.auth.getUser(), 10000, "auth.getUser");
       if (!user) throw new Error("Not authenticated");
       const payload = { ...surveyToDb(s), user_id: user.id };
-      const { data, error } = await sb.from("surveys").insert(payload).select().single();
+      const { data, error } = await withTimeout(
+        sb.from("surveys").insert(payload).select().single(),
+        10000, "createSurvey"
+      );
       if (error) throw error;
       return dbToSurvey(data);
     },
     async updateSurvey(id, s) {
-      const { data, error } = await sb.from("surveys").update(surveyToDb(s)).eq("id", id).select().single();
+      if (!isValidUUID(id)) {
+        throw new Error("Це старе опитування з невалідним id (" + id + "). Видаліть його через кнопку 'Видалити' і створіть нове.");
+      }
+      const { data, error } = await withTimeout(
+        sb.from("surveys").update(surveyToDb(s)).eq("id", id).select().single(),
+        10000, "updateSurvey"
+      );
       if (error) throw error;
       return dbToSurvey(data);
     },
     async deleteSurvey(id) {
-      const { error } = await sb.from("surveys").delete().eq("id", id);
+      if (!isValidUUID(id)) {
+        // Старе опитування з кирилицею у id — у БД його точно нема, чистимо лише локально
+        console.warn("deleteSurvey: cleaning local-only invalid id", id);
+        return true;
+      }
+      const { error } = await withTimeout(
+        sb.from("surveys").delete().eq("id", id),
+        10000, "deleteSurvey"
+      );
       if (error) throw error;
       return true;
     },
@@ -167,9 +203,12 @@
       return data;
     },
     async updateProfile(patch) {
-      const { data: { user } } = await sb.auth.getUser();
+      const { data: { user } } = await withTimeout(sb.auth.getUser(), 10000, "auth.getUser");
       if (!user) throw new Error("Not authenticated");
-      const { data, error } = await sb.from("profiles").update(patch).eq("id", user.id).select().single();
+      const { data, error } = await withTimeout(
+        sb.from("profiles").update(patch).eq("id", user.id).select().single(),
+        10000, "updateProfile"
+      );
       if (error) throw error;
       return data;
     }
@@ -4213,7 +4252,14 @@ async function saveDraftOnly() {
 }
 
 function slugify(s) {
-  return (s || "survey").toLowerCase().replace(/[^a-z0-9а-яіїєґ]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  // ASCII-only щоб уникнути проблем з URI-encoding у Supabase REST API
+  // (запити з кирилицею у id висіли без відповіді)
+  return (s || "survey")
+    .toLowerCase()
+    .replace(/[а-яіїєґ]/g, "x")  // кирилиця → x
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24) || "survey";
 }
 
 async function deleteSurvey(id) {
