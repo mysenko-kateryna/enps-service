@@ -4131,35 +4131,45 @@ function saveNewSurvey() {
 
 // Генерація посилання – саме тут списується кредит
 async function activateSurvey(id) {
+  console.log("[activate] start, id=", id);
   const s = state.surveys.find(x => x.id === id);
-  if (!s) return;
-  if (s.status === "active") return;
+  if (!s) { console.warn("[activate] survey not found in state"); alert("Помилка: опитування не знайдено в кабінеті"); return; }
+  if (s.status === "active") { console.log("[activate] already active"); alert("Це опитування вже активне."); return; }
   if ((state.credits || 0) <= 0) {
+    console.log("[activate] no credits");
     if (confirm("У вас немає оплачених опитувань. Перейти до оплати?")) {
       showView("payView");
     }
     return;
   }
   const warning = "УВАГА: після генерації посилання анкету НЕ МОЖНА буде редагувати.\n\nПеред натисканням перевірте:\n• Назву компанії і заголовок\n• Головне питання eNPS\n• Додаткові питання і їх обовʼязковість\n• Текст подяки\n\nНатиснути «ОК» щоб активувати опитування? Це спише 1 оплачене опитування з балансу.";
-  if (!confirm(warning)) return;
+  if (!confirm(warning)) { console.log("[activate] user cancelled confirm"); return; }
+  console.log("[activate] confirmed, proceeding to API");
   const isDemo = !state.user?.id;
+  console.log("[activate] isDemo=", isDemo, "user.id=", state.user?.id);
   try {
     if (!isDemo) {
-      await api.updateSurvey(id, { status: "active" });
-      // Списуємо кредит у БД
-      await api.updateProfile({ credits: (state.credits || 0) - 1 });
+      console.log("[activate] calling api.updateSurvey...");
+      const updated = await api.updateSurvey(id, { status: "active" });
+      console.log("[activate] updateSurvey OK:", updated);
+      console.log("[activate] calling api.updateProfile (credits)...");
+      const profile = await api.updateProfile({ credits: (state.credits || 0) - 1 });
+      console.log("[activate] updateProfile OK:", profile);
     }
   } catch (e) {
-    console.error("activateSurvey:", e);
-    alert("Не вдалося активувати: " + (e.message || e));
+    console.error("[activate] FAILED:", e);
+    alert("Не вдалося активувати: " + (e.message || JSON.stringify(e)));
     return;
   }
+  console.log("[activate] applying state changes");
   s.status = "active";
   s.activatedAt = new Date().toISOString().slice(0, 10);
   state.credits -= 1;
   saveState();
   updateCreditsBadge();
   renderSurveyDetail(s);
+  console.log("[activate] done, status=", s.status, "credits=", state.credits);
+  alert("Опитування активовано! Посилання згенеровано.");
 }
 
 async function saveDraftOnly() {
