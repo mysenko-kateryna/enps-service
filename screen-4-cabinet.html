@@ -34,8 +34,17 @@
   // Supabase клієнт
   const SUPABASE_URL = "https://pecjwdwuntuhfjxkydwe.supabase.co";
   const SUPABASE_KEY = "sb_publishable_WH03h2sGLMoeaEq-oTJVIQ_38C2yA7z";
+  // No-op lock щоб обійти navigator.locks deadlock у Supabase JS v2
+  // (basic getSession() може зависати якщо lock застряг між вкладками)
+  const noopLock = async (name, acquireTimeout, fn) => fn();
   window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: "enps-auth-" + SUPABASE_URL.replace(/^https?:\/\//, "").split(".")[0],
+      lock: noopLock,
+    }
   });
 
   // ====== API: обгортка над Supabase ======
