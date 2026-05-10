@@ -145,7 +145,7 @@
       // Замість sb.auth.getUser() (який може висити через navigator.locks)
       // беремо id з state. RLS policy "with check (auth.uid() = user_id)"
       // все одно перевірить що user_id не підставлений.
-      const userId = window.state?.user?.id;
+      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
       if (!userId) throw new Error("Not authenticated (no user.id in state)");
       const payload = { ...surveyToDb(s), user_id: userId };
       const { data, error } = await withTimeout(
@@ -207,7 +207,7 @@
     },
     // PROFILE
     async getCurrentProfile() {
-      const userId = window.state?.user?.id;
+      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
       if (!userId) return null;
       const { data, error } = await withTimeout(
         sb.from("profiles").select("*").eq("id", userId).single(),
@@ -217,7 +217,7 @@
       return data;
     },
     async updateProfile(patch) {
-      const userId = window.state?.user?.id;
+      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
       if (!userId) throw new Error("Not authenticated (no user.id in state)");
       const { data, error } = await withTimeout(
         sb.from("profiles").update(patch).eq("id", userId).select().single(),
