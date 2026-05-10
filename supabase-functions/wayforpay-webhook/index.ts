@@ -153,9 +153,11 @@ Deno.serve(async (req: Request) => {
 
   if (!user) {
     console.warn("User not found by email or orderReference:", email, payload.orderReference);
-    // Все одно записуємо платіж щоб не пропав
-    await supa.from("payments").insert({
+    // Записуємо як orphan-платіж. claim_orphan_payments() підхопить його
+    // коли клієнт зареєструється/логіниться з тим email.
+    const { error: orphanErr } = await supa.from("payments").insert({
       user_id: null,
+      unmatched_email: email,
       amount,
       qty: credits,
       currency: payload.currency || "UAH",
@@ -163,21 +165,25 @@ Deno.serve(async (req: Request) => {
       status: "success",
       raw_payload: payload,
     } as any);
+    if (orphanErr) {
+      console.error("Failed to insert orphan payment:", orphanErr);
+      return new Response("DB error", { status: 500 });
+    }
+    console.log(`Saved orphan payment for ${email}, ${credits} credits, order ${payload.orderReference}`);
     return buildResponse(payload.orderReference);
   }
 
-  // Нараховуємо credits атомарно
-  const { data: profile, error: profErr } = await supa
-    .from("profiles")
-    .select("credits")
-    .eq("id", user.id)
-    .single();
-  if (profErr) {
-    console.error("Profile fetch:", profErr);
+  // Нараховуємо credits через RPC add_credits (атомарно, без race)
+  // service_role обходить RLS і тригер блокування credits
+  const { data: addResult, error: addErr } = await supa.rpc("add_credits", {
+    target_user_id: user.id,
+    amount: credits,
+  });
+  if (addErr) {
+    console.error("add_credits RPC failed:", addErr);
     return new Response("DB error", { status: 500 });
   }
-  const newCredits = (profile.credits || 0) + credits;
-  await supa.from("profiles").update({ credits: newCredits }).eq("id", user.id);
+  const newCredits = addResult?.credits ?? "?";
 
   // Запис у payments
   await supa.from("payments").insert({
