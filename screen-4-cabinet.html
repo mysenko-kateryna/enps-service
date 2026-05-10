@@ -4221,14 +4221,26 @@ async function activateSurvey(id) {
   console.log("[activate] confirmed, proceeding to API");
   const isDemo = !state.user?.id;
   console.log("[activate] isDemo=", isDemo, "user.id=", state.user?.id);
+  let newCredits = state.credits;
   try {
     if (!isDemo) {
+      // КРОК 1: списати кредит через захищений RPC (атомарно, защищено від race і прямих UPDATE)
+      console.log("[activate] calling rpc consume_credit...");
+      const { data: consumeData, error: consumeError } = await withTimeout(
+        sb.rpc("consume_credit"),
+        10000, "consume_credit"
+      );
+      if (consumeError) throw consumeError;
+      if (!consumeData || consumeData.success !== true) {
+        throw new Error("Не вдалося списати кредит: " + JSON.stringify(consumeData));
+      }
+      newCredits = consumeData.credits;
+      console.log("[activate] consume_credit OK, new balance:", newCredits);
+      // КРОК 2: активувати опитування. Якщо тут помилка - кредит вже списано,
+      // спробуємо повернути його через add_credits через webhook/admin якщо треба.
       console.log("[activate] calling api.updateSurvey...");
       const updated = await api.updateSurvey(id, { status: "active" });
       console.log("[activate] updateSurvey OK:", updated);
-      console.log("[activate] calling api.updateProfile (credits)...");
-      const profile = await api.updateProfile({ credits: (state.credits || 0) - 1 });
-      console.log("[activate] updateProfile OK:", profile);
     }
   } catch (e) {
     console.error("[activate] FAILED:", e);
@@ -4238,7 +4250,7 @@ async function activateSurvey(id) {
   console.log("[activate] applying state changes");
   s.status = "active";
   s.activatedAt = new Date().toISOString().slice(0, 10);
-  state.credits -= 1;
+  state.credits = newCredits;
   saveState();
   updateCreditsBadge();
   renderSurveyDetail(s);
