@@ -122,6 +122,18 @@
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function isValidUUID(s) { return typeof s === "string" && UUID_RE.test(s); }
 
+  // Дістати user.id з кількох джерел (state -> session з localStorage). НЕ викликає getUser().
+  async function getCurrentUserId() {
+    if (typeof state !== "undefined" && state?.user?.id) return state.user.id;
+    try {
+      const { data: { session } } = await withTimeout(sb.auth.getSession(), 5000, "auth.getSession");
+      return session?.user?.id || null;
+    } catch (e) {
+      console.warn("getCurrentUserId: getSession failed", e);
+      return null;
+    }
+  }
+
   window.api = {
     // SURVEYS
     async listSurveys() {
@@ -145,7 +157,7 @@
       // Замість sb.auth.getUser() (який може висити через navigator.locks)
       // беремо id з state. RLS policy "with check (auth.uid() = user_id)"
       // все одно перевірить що user_id не підставлений.
-      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
+      const userId = await getCurrentUserId();
       if (!userId) throw new Error("Not authenticated (no user.id in state)");
       const payload = { ...surveyToDb(s), user_id: userId };
       const { data, error } = await withTimeout(
@@ -207,7 +219,7 @@
     },
     // PROFILE
     async getCurrentProfile() {
-      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
+      const userId = await getCurrentUserId();
       if (!userId) return null;
       const { data, error } = await withTimeout(
         sb.from("profiles").select("*").eq("id", userId).single(),
@@ -217,7 +229,7 @@
       return data;
     },
     async updateProfile(patch) {
-      const userId = (typeof state !== "undefined" ? state?.user?.id : null);
+      const userId = await getCurrentUserId();
       if (!userId) throw new Error("Not authenticated (no user.id in state)");
       const { data, error } = await withTimeout(
         sb.from("profiles").update(patch).eq("id", userId).select().single(),
@@ -3316,9 +3328,14 @@ function setAuthMessage(elId, text, kind) {
 
 async function loadUserProfile() {
   try {
-    const { data: { user } } = await sb.auth.getUser();
+    // Беремо id з сесії (швидко, з пам'яті) замість getUser() (може висити)
+    const { data: { session } } = await withTimeout(sb.auth.getSession(), 10000, "auth.getSession");
+    const user = session?.user;
     if (!user) return null;
-    const { data: profile, error } = await sb.from("profiles").select("*").eq("id", user.id).single();
+    const { data: profile, error } = await withTimeout(
+      sb.from("profiles").select("*").eq("id", user.id).single(),
+      10000, "loadUserProfile.profiles"
+    );
     if (error) { console.warn("Profile fetch error:", error); return null; }
     const nameParts = (profile.name || "").split(" ");
     state.user = {
