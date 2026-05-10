@@ -210,12 +210,13 @@
         comment: r.comment || null,
         extras: r.extras || []
       };
-      const { data, error } = await withTimeout(
-        sb.from("responses").insert(payload).select().single(),
+      // Без .select() — анонім не має SELECT permission на responses, тільки INSERT
+      const { error } = await withTimeout(
+        sb.from("responses").insert(payload),
         10000, "submitResponse"
       );
       if (error) throw error;
-      return dbToResponse(data);
+      return { success: true };
     },
     // PROFILE
     async getCurrentProfile() {
