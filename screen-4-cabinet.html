@@ -142,9 +142,12 @@
       return data ? dbToSurvey(data) : null;
     },
     async createSurvey(s) {
-      const { data: { user } } = await withTimeout(sb.auth.getUser(), 10000, "auth.getUser");
-      if (!user) throw new Error("Not authenticated");
-      const payload = { ...surveyToDb(s), user_id: user.id };
+      // Замість sb.auth.getUser() (який може висити через navigator.locks)
+      // беремо id з state. RLS policy "with check (auth.uid() = user_id)"
+      // все одно перевірить що user_id не підставлений.
+      const userId = window.state?.user?.id;
+      if (!userId) throw new Error("Not authenticated (no user.id in state)");
+      const payload = { ...surveyToDb(s), user_id: userId };
       const { data, error } = await withTimeout(
         sb.from("surveys").insert(payload).select().single(),
         10000, "createSurvey"
@@ -178,11 +181,16 @@
     },
     // RESPONSES
     async listResponses(surveyId) {
-      const { data, error } = await sb.from("responses").select("*").eq("survey_id", surveyId).order("created_at", { ascending: true });
+      if (!isValidUUID(surveyId)) { console.warn("listResponses: invalid uuid", surveyId); return []; }
+      const { data, error } = await withTimeout(
+        sb.from("responses").select("*").eq("survey_id", surveyId).order("created_at", { ascending: true }),
+        10000, "listResponses"
+      );
       if (error) { console.error("listResponses:", error); return []; }
       return (data || []).map(dbToResponse);
     },
     async submitResponse(surveyId, r) {
+      if (!isValidUUID(surveyId)) throw new Error("Невалідне опитування");
       const payload = {
         survey_id: surveyId,
         score: r.score,
@@ -190,23 +198,29 @@
         comment: r.comment || null,
         extras: r.extras || []
       };
-      const { data, error } = await sb.from("responses").insert(payload).select().single();
+      const { data, error } = await withTimeout(
+        sb.from("responses").insert(payload).select().single(),
+        10000, "submitResponse"
+      );
       if (error) throw error;
       return dbToResponse(data);
     },
     // PROFILE
     async getCurrentProfile() {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) return null;
-      const { data, error } = await sb.from("profiles").select("*").eq("id", user.id).single();
+      const userId = window.state?.user?.id;
+      if (!userId) return null;
+      const { data, error } = await withTimeout(
+        sb.from("profiles").select("*").eq("id", userId).single(),
+        10000, "getCurrentProfile"
+      );
       if (error) { console.error("getCurrentProfile:", error); return null; }
       return data;
     },
     async updateProfile(patch) {
-      const { data: { user } } = await withTimeout(sb.auth.getUser(), 10000, "auth.getUser");
-      if (!user) throw new Error("Not authenticated");
+      const userId = window.state?.user?.id;
+      if (!userId) throw new Error("Not authenticated (no user.id in state)");
       const { data, error } = await withTimeout(
-        sb.from("profiles").update(patch).eq("id", user.id).select().single(),
+        sb.from("profiles").update(patch).eq("id", userId).select().single(),
         10000, "updateProfile"
       );
       if (error) throw error;
