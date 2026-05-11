@@ -30,9 +30,6 @@
 <script src="pptxgen.bundle.js" async></script>
 <script src="docx.iife.js" async></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- WayForPay SDK (merchant flow). Async щоб не блокувати рендер;
-     goPay() перевіряє window.Wayforpay і fallback'ить на button-режим якщо SDK не завантажився. -->
-<script src="https://secure.wayforpay.com/server/pay-widget.js" async></script>
 <script>
   // Supabase клієнт
   const SUPABASE_URL = "https://pecjwdwuntuhfjxkydwe.supabase.co";
@@ -3109,14 +3106,14 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: WayForPay merchant flow через Wayforpay.run() ======
-// Edge Function wayforpay-create-intent готує підписаний payload з orderReference
-// = "user_<uuid>_<timestamp>". WayForPay приймає наш orderReference (на відміну від
-// button-режиму, який генерує власний WFP-BTN-* і ламає fallback парсинг у webhook).
+// ====== PAY: WayForPay button-flow з пре-філлом email/імені через POST ======
+// Єдиний шлях оплати для всіх юзерів - button-flow з картинкою продукту і всіма
+// методами оплати у самому WayForPay. orderReference генерує WayForPay (WFP-BTN-*),
+// webhook знаходить юзера через email lookup. Якщо клієнт ввів інший email -
+// claim_orphan_payments() автоматично прив'яже платіж при наступному логіні.
 //
-// Fallback: якщо SDK не завантажився (рекламоблок, мережа, CSP), fallback'имось на
-// старий button POST-flow - оплата все одно пройде, тільки orderReference буде
-// WFP-BTN-*, і обробка піде через email lookup + claim_orphan_payments як раніше.
+// Merchant flow з підписаним orderReference (edge function wayforpay-create-intent)
+// залишається на Supabase як backup для майбутніх версій (custom branded checkout).
 
 const WAYFORPAY_BUTTONS = {
   1: "b67b09c2a9a10",
@@ -3124,10 +3121,10 @@ const WAYFORPAY_BUTTONS = {
   10: "bcf8be93eb60c",
 };
 
-function payFallbackButton(qty) {
+function goPay(qty, event) {
+  if (event) event.preventDefault();
   const buttonId = WAYFORPAY_BUTTONS[qty];
   if (!buttonId) return;
-  console.warn("[goPay] fallback to button-flow, qty=", qty);
 
   const form = document.createElement("form");
   form.method = "POST";
@@ -3144,6 +3141,7 @@ function payFallbackButton(qty) {
     form.appendChild(input);
   };
 
+  // Пре-філл email/імені для залогінених. Неавторизовані вводять самі.
   if (state.user) {
     addField("clientEmail", state.user.email);
     addField("email", state.user.email);
@@ -3156,79 +3154,6 @@ function payFallbackButton(qty) {
   document.body.appendChild(form);
   form.submit();
   setTimeout(() => form.remove(), 200);
-}
-
-async function goPay(qty, event) {
-  if (event) event.preventDefault();
-  // qty=0 - тестовий платіж 1 ₴ через merchant-only flow (нема button-fallback).
-  // Решта qty повинні мати кнопку у WAYFORPAY_BUTTONS.
-  const isTestQty = qty === 0;
-  if (!isTestQty && !WAYFORPAY_BUTTONS[qty]) return;
-
-  // Demo / неавторизовані юзери - одразу на button-flow (немає JWT).
-  // Для qty=0 (test) обовʼязково потрібен залогінений юзер.
-  if (!state.user?.id) {
-    if (isTestQty) { alert("Тестовий платіж потребує логіну."); return; }
-    payFallbackButton(qty);
-    return;
-  }
-
-  // SDK не завантажився (CDN заблокований / не догрузився) - fallback на button.
-  // qty=0 (test) без SDK - неможливий, бо тестового button-id немає.
-  if (typeof window.Wayforpay !== "function") {
-    console.warn("[goPay] Wayforpay SDK not loaded");
-    if (isTestQty) { alert("WayForPay SDK не завантажився, тестовий платіж недоступний."); return; }
-    payFallbackButton(qty);
-    return;
-  }
-
-  try {
-    // Беремо свіжий JWT з Supabase сесії
-    const { data: sessionData, error: sessErr } = await withTimeout(
-      sb.auth.getSession(), 5000, "getSession"
-    );
-    const token = sessionData?.session?.access_token;
-    if (sessErr || !token) {
-      console.warn("[goPay] no session. err=", sessErr?.message);
-      if (isTestQty) { alert("Сесія не активна. Перезайдіть."); return; }
-      payFallbackButton(qty);
-      return;
-    }
-
-    // Просимо edge function створити підписаний payload
-    const resp = await withTimeout(
-      fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ qty }),
-      }), 10000, "create-intent"
-    );
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.error("[goPay] create-intent failed:", resp.status, text);
-      if (isTestQty) { alert("Edge function помилка: " + text); return; }
-      payFallbackButton(qty);
-      return;
-    }
-    const payload = await resp.json();
-    console.log("[goPay] payload received:", payload.orderReference);
-
-    // Запускаємо WayForPay віджет (iframe з оплатою)
-    const wfp = new window.Wayforpay();
-    wfp.run(
-      payload,
-      function approved(r) { console.log("[wayforpay] approved", r); },
-      function declined(r) { console.log("[wayforpay] declined", r); },
-      function pending(r)  { console.log("[wayforpay] pending", r); }
-    );
-  } catch (e) {
-    console.error("[goPay] error:", e);
-    if (isTestQty) { alert("Помилка: " + (e.message || e)); return; }
-    payFallbackButton(qty);
-  }
 }
 
 // ====== AUTH ======
