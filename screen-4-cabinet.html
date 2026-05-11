@@ -30,6 +30,9 @@
 <script src="pptxgen.bundle.js" async></script>
 <script src="docx.iife.js" async></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- WayForPay SDK (merchant flow). Async щоб не блокувати рендер;
+     goPay() перевіряє window.Wayforpay і fallback'ить на button-режим якщо SDK не завантажився. -->
+<script src="https://secure.wayforpay.com/server/pay-widget.js" async></script>
 <script>
   // Supabase клієнт
   const SUPABASE_URL = "https://pecjwdwuntuhfjxkydwe.supabase.co";
@@ -3106,18 +3109,25 @@ function showTab(id) {
   }
 }
 
-// ====== PAY: WayForPay button з POST-формою (для пре-філлу email) ======
-// Відкриваємо повноекранну сторінку WayForPay (зберігаємо eNPS картинку),
-// але передаємо email/імʼя через POST-форму (працює надійніше за URL-параметри).
-function goPay(qty, event) {
-  if (event) event.preventDefault();
-  const buttons = {
-    1: "b67b09c2a9a10",
-    4: "b219b94681afd",
-    10: "bcf8be93eb60c",
-  };
-  const buttonId = buttons[qty];
+// ====== PAY: WayForPay merchant flow через Wayforpay.run() ======
+// Edge Function wayforpay-create-intent готує підписаний payload з orderReference
+// = "user_<uuid>_<timestamp>". WayForPay приймає наш orderReference (на відміну від
+// button-режиму, який генерує власний WFP-BTN-* і ламає fallback парсинг у webhook).
+//
+// Fallback: якщо SDK не завантажився (рекламоблок, мережа, CSP), fallback'имось на
+// старий button POST-flow - оплата все одно пройде, тільки orderReference буде
+// WFP-BTN-*, і обробка піде через email lookup + claim_orphan_payments як раніше.
+
+const WAYFORPAY_BUTTONS = {
+  1: "b67b09c2a9a10",
+  4: "b219b94681afd",
+  10: "bcf8be93eb60c",
+};
+
+function payFallbackButton(qty) {
+  const buttonId = WAYFORPAY_BUTTONS[qty];
   if (!buttonId) return;
+  console.warn("[goPay] fallback to button-flow, qty=", qty);
 
   const form = document.createElement("form");
   form.method = "POST";
@@ -3135,21 +3145,90 @@ function goPay(qty, event) {
   };
 
   if (state.user) {
-    // Пробуємо різні імена параметрів, WayForPay може приймати щось одне з них
     addField("clientEmail", state.user.email);
     addField("email", state.user.email);
     addField("clientFirstName", state.user.firstName);
     addField("firstName", state.user.firstName);
     addField("clientLastName", state.user.lastName);
     addField("lastName", state.user.lastName);
-    if (state.user.id) {
-      addField("orderReference", `user_${state.user.id}_${Date.now()}`);
-    }
   }
 
   document.body.appendChild(form);
   form.submit();
   setTimeout(() => form.remove(), 200);
+}
+
+async function goPay(qty, event) {
+  if (event) event.preventDefault();
+  // qty=0 - тестовий платіж 1 ₴ через merchant-only flow (нема button-fallback).
+  // Решта qty повинні мати кнопку у WAYFORPAY_BUTTONS.
+  const isTestQty = qty === 0;
+  if (!isTestQty && !WAYFORPAY_BUTTONS[qty]) return;
+
+  // Demo / неавторизовані юзери - одразу на button-flow (немає JWT).
+  // Для qty=0 (test) обовʼязково потрібен залогінений юзер.
+  if (!state.user?.id) {
+    if (isTestQty) { alert("Тестовий платіж потребує логіну."); return; }
+    payFallbackButton(qty);
+    return;
+  }
+
+  // SDK не завантажився (CDN заблокований / не догрузився) - fallback на button.
+  // qty=0 (test) без SDK - неможливий, бо тестового button-id немає.
+  if (typeof window.Wayforpay !== "function") {
+    console.warn("[goPay] Wayforpay SDK not loaded");
+    if (isTestQty) { alert("WayForPay SDK не завантажився, тестовий платіж недоступний."); return; }
+    payFallbackButton(qty);
+    return;
+  }
+
+  try {
+    // Беремо свіжий JWT з Supabase сесії
+    const { data: sessionData, error: sessErr } = await withTimeout(
+      sb.auth.getSession(), 5000, "getSession"
+    );
+    const token = sessionData?.session?.access_token;
+    if (sessErr || !token) {
+      console.warn("[goPay] no session. err=", sessErr?.message);
+      if (isTestQty) { alert("Сесія не активна. Перезайдіть."); return; }
+      payFallbackButton(qty);
+      return;
+    }
+
+    // Просимо edge function створити підписаний payload
+    const resp = await withTimeout(
+      fetch(`${SUPABASE_URL}/functions/v1/wayforpay-create-intent`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ qty }),
+      }), 10000, "create-intent"
+    );
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error("[goPay] create-intent failed:", resp.status, text);
+      if (isTestQty) { alert("Edge function помилка: " + text); return; }
+      payFallbackButton(qty);
+      return;
+    }
+    const payload = await resp.json();
+    console.log("[goPay] payload received:", payload.orderReference);
+
+    // Запускаємо WayForPay віджет (iframe з оплатою)
+    const wfp = new window.Wayforpay();
+    wfp.run(
+      payload,
+      function approved(r) { console.log("[wayforpay] approved", r); },
+      function declined(r) { console.log("[wayforpay] declined", r); },
+      function pending(r)  { console.log("[wayforpay] pending", r); }
+    );
+  } catch (e) {
+    console.error("[goPay] error:", e);
+    if (isTestQty) { alert("Помилка: " + (e.message || e)); return; }
+    payFallbackButton(qty);
+  }
 }
 
 // ====== AUTH ======
@@ -3567,8 +3646,10 @@ async function doLogout() {
       }
     }
   } catch (_) {}
-  state.user = null;
-  state.loggedIn = false;
+  // Повний скид state - уникнення витоку чужих surveys/credits/pendingIntent
+  // через LS на той самий браузер коли інший юзер заходить наступним
+  state = emptyState();
+  currentSurveyId = null;
   saveState();
   document.getElementById("userArea").classList.add("hidden");
   showView("loginView");
@@ -4256,23 +4337,19 @@ async function activateSurvey(id) {
   let newCredits = state.credits;
   try {
     if (!isDemo) {
-      // КРОК 1: списати кредит через захищений RPC (атомарно, защищено від race і прямих UPDATE)
-      console.log("[activate] calling rpc consume_credit...");
-      const { data: consumeData, error: consumeError } = await withTimeout(
-        sb.rpc("consume_credit"),
-        10000, "consume_credit"
+      // Атомарна активація: списання кредиту + UPDATE status='active' у одній транзакції.
+      // Якщо UPDATE впаде (RLS, мережа, не draft) - кредит роллбекається разом з нею.
+      console.log("[activate] calling rpc activate_survey...");
+      const { data: actData, error: actError } = await withTimeout(
+        sb.rpc("activate_survey", { survey_id: id }),
+        10000, "activate_survey"
       );
-      if (consumeError) throw consumeError;
-      if (!consumeData || consumeData.success !== true) {
-        throw new Error("Не вдалося списати кредит: " + JSON.stringify(consumeData));
+      if (actError) throw actError;
+      if (!actData || actData.success !== true) {
+        throw new Error("Не вдалося активувати: " + JSON.stringify(actData));
       }
-      newCredits = consumeData.credits;
-      console.log("[activate] consume_credit OK, new balance:", newCredits);
-      // КРОК 2: активувати опитування. Якщо тут помилка - кредит вже списано,
-      // спробуємо повернути його через add_credits через webhook/admin якщо треба.
-      console.log("[activate] calling api.updateSurvey...");
-      const updated = await api.updateSurvey(id, { status: "active" });
-      console.log("[activate] updateSurvey OK:", updated);
+      newCredits = actData.credits;
+      console.log("[activate] activate_survey OK, new balance:", newCredits);
     }
   } catch (e) {
     console.error("[activate] FAILED:", e);
