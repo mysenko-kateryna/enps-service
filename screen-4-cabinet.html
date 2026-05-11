@@ -3441,6 +3441,13 @@ async function doLogin() {
       setAuthMessage("loginError", msg, "error");
       return;
     }
+    // Очищаємо state ПОПЕРЕДНЬОГО юзера якщо він був у LS (інший акаунт у тому самому браузері).
+    // Без цього у новому юзера підтягнулися б старі surveys/credits/firstName з кешу LS.
+    if (data?.user && state.user?.id && state.user.id !== data.user.id) {
+      console.log("[doLogin] cleaning previous user state from LS");
+      state = emptyState();
+      currentSurveyId = null;
+    }
     // Базовий state одразу з auth-відповіді, щоб кабінет відкрився швидко
     if (data?.user) {
       state.loggedIn = true;
@@ -3519,6 +3526,14 @@ async function doRegister() {
   }
   const btn = event?.target?.querySelector?.('button[type="submit"]');
   if (btn) { btn.disabled = true; btn.dataset.orig = btn.textContent; btn.textContent = "Реєструю..."; }
+  // Очищаємо state від попереднього юзера якщо у LS лишилися його дані.
+  // Без цього у нового юзера підтягнулися б старі surveys/credits з браузера.
+  if (state.user?.id || (state.surveys && state.surveys.length)) {
+    console.log("[doRegister] cleaning previous state from LS");
+    state = emptyState();
+    currentSurveyId = null;
+    saveState();
+  }
   try {
     const fullName = firstName;
     const { data, error } = await sb.auth.signUp({
@@ -3580,12 +3595,68 @@ async function doLogout() {
   showView("loginView");
 }
 
-function deleteAccount() {
-  if (!confirm("Видалити акаунт разом з усіма опитуваннями? Це незворотно.")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  state = emptyState();
-  document.getElementById("userArea").style.display = "none";
-  showView("registerView");
+async function deleteAccount() {
+  if (!confirm("Видалити акаунт разом з усіма опитуваннями?\n\nЦе НЕЗВОРОТНО. Будуть видалені:\n- профіль\n- всі опитування і відповіді\n- посилання для співробітників перестануть працювати\n\nІсторія платежів залишиться у бухгалтерії як орфан-записи.")) return;
+
+  // Demo / неавторизовані: лише локальне очищення
+  if (!state.user?.id) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = emptyState();
+    currentSurveyId = null;
+    document.getElementById("userArea").classList.add("hidden");
+    showView("registerView");
+    return;
+  }
+
+  try {
+    // Беремо JWT для виклику edge function
+    const { data: sessionData, error: sessErr } = await withTimeout(
+      sb.auth.getSession(), 5000, "getSession"
+    );
+    const token = sessionData?.session?.access_token;
+    if (sessErr || !token) {
+      alert("Не вдалося отримати сесію. Перезайдіть і спробуйте знову.");
+      return;
+    }
+
+    // Викликаємо edge function що видаляє auth.user (cascade на profile/surveys/responses)
+    const resp = await withTimeout(
+      fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }), 15000, "delete-account"
+    );
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error("[deleteAccount] failed:", resp.status, text);
+      alert("Не вдалося видалити акаунт: " + text);
+      return;
+    }
+    const result = await resp.json();
+    console.log("[deleteAccount] ok:", result);
+
+    // Підчищаємо локально - сесію, LS, state
+    try { await sb.auth.signOut(); } catch (_) {}
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (_) {}
+    localStorage.removeItem(STORAGE_KEY);
+    state = emptyState();
+    currentSurveyId = null;
+    document.getElementById("userArea").classList.add("hidden");
+    alert("Акаунт видалено. Дякуємо що були з нами.");
+    showView("registerView");
+  } catch (e) {
+    console.error("[deleteAccount] error:", e);
+    alert("Помилка: " + (e.message || e));
+  }
 }
 
 // ====== PROFILE ======
