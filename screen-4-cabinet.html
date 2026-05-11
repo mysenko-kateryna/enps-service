@@ -3550,7 +3550,7 @@ async function doRegister() {
     // Якщо session нема — Supabase вимагає email confirmation
     if (!data.session) {
       setAuthMessage("registerError",
-        `Лист з підтвердженням надіслано на ${email}. Перейдіть на пошту, клацніть посилання у листі, і поверніться сюди для входу.\n\nЛист може потрапити у папку Спам або Промоакції. Якщо не бачите його в Inbox - перевірте ці папки. Додайте noreply@mysenko-hr.com у адресну книгу щоб наступні листи приходили у Inbox.`,
+        `Лист з підтвердженням надіслано на ${email}. Перевірте Inbox або папку Спам.`,
         "info");
       return;
     }
